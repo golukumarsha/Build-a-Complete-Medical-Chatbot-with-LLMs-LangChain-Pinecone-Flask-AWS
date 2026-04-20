@@ -1,93 +1,63 @@
+# app.py — OpenAI ki jagah Groq use karo
 from flask import Flask, render_template, request, jsonify
 from dotenv import load_dotenv
 import os
 
-# LangChain imports
-from langchain.chat_models import ChatOpenAI
-from langchain.chains import RetrievalQA
-from langchain.prompts import PromptTemplate
-from langchain.schema import BaseRetriever, Document
+from langchain_groq import ChatGroq
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnablePassthrough
+from langchain_core.output_parsers import StrOutputParser
 
-# Pinecone + embeddings
 from src.helper import download_hugging_face_embeddings
 from langchain_pinecone import PineconeVectorStore
 from pinecone import Pinecone
-from typing import List
 
-# ------------------ App Initialization ------------------
 app = Flask(__name__)
 load_dotenv()
 
 PINECONE_API_KEY = os.environ.get("PINECONE_API_KEY")
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 
-# Initialize Pinecone client
+# Pinecone + Embeddings
 pc = Pinecone(api_key=PINECONE_API_KEY)
-
-# HuggingFace embeddings
 embeddings = download_hugging_face_embeddings()
-
-# Index name
 index_name = "medical-chatbot"
 
-# Check if index exists
-if index_name not in pc.list_indexes().names():
-    raise ValueError(
-        f"Index '{index_name}' does not exist. Run store_index.py first."
-    )
-
-# Load Pinecone index
 docsearch = PineconeVectorStore.from_existing_index(
     index_name=index_name,
     embedding=embeddings
 )
+retriever = docsearch.as_retriever(
+    search_type="similarity", search_kwargs={"k": 3})
 
-# ------------------ Custom Retriever ------------------
-
-
-class PineconeRetrieverWrapper(BaseRetriever):
-    vectorstore: PineconeVectorStore  # ✅ Pydantic field
-    k: int = 3
-
-    def get_relevant_documents(self, query: str) -> List[Document]:
-        return self.vectorstore.similarity_search(query, k=self.k)
-
-
-# Instantiate retriever
-retriever = PineconeRetrieverWrapper(vectorstore=docsearch, k=3)
-
-# Prompt template
-prompt_template = """You are a medical assistant chatbot. Use the following context to answer the user's question.
-If you don't know the answer, just say you don't know. Don't try to make up information.
-
-Context: {context}
-
-Question: {question}
-
-Answer: """
-
-PROMPT = PromptTemplate(
-    template=prompt_template,
-    input_variables=["context", "question"]
+# Groq LLM
+llm = ChatGroq(
+    model="llama-3.1-8b-instant",
+    api_key=GROQ_API_KEY,
+    temperature=0.4,
+    max_tokens=500
 )
 
-# LLM
-llm = ChatOpenAI(
-    model_name="gpt-3.5-turbo",
-    temperature=0.3,
-    openai_api_key=OPENAI_API_KEY
+# Prompt
+system_prompt = (
+    "You are a Medical assistant. Use the retrieved context to answer. "
+    "If you don't know, say so. Keep answers concise.\n\n{context}"
 )
+prompt = ChatPromptTemplate.from_messages([
+    ("system", system_prompt),
+    ("human", "{input}"),
+])
 
-# RetrievalQA chain
-qa = RetrievalQA.from_chain_type(
-    llm=llm,
-    retriever=retriever,
-    chain_type="stuff",
-    chain_type_kwargs={"prompt": PROMPT},
-    return_source_documents=True
+
+def format_docs(docs):
+    return "\n\n".join(doc.page_content for doc in docs)
+
+
+# RAG Chain
+rag_chain = (
+    {"context": retriever | format_docs, "input": RunnablePassthrough()}
+    | prompt | llm | StrOutputParser()
 )
-
-# ------------------ Flask Routes ------------------
 
 
 @app.route("/")
@@ -99,11 +69,11 @@ def index():
 def chat():
     try:
         msg = request.form["msg"]
-        result = qa.invoke({"query": msg})
-        response = result["result"]
-        return jsonify({"response": response})
+        response = rag_chain.invoke(msg)
+        # ✅ seedha string return karo
+        return jsonify({"response": str(response)})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"response": f"Error: {str(e)}"}), 500
 
 
 @app.route("/health")
