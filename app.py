@@ -1,4 +1,4 @@
-# app.py — OpenAI ki jagah Groq use karo
+# app.py — Groq + RAG + Medical Image Support
 from flask import Flask, render_template, request, jsonify
 from dotenv import load_dotenv
 import os
@@ -9,6 +9,7 @@ from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
 
 from src.helper import download_hugging_face_embeddings
+from src.image_helper import get_medical_image          # ✅ NEW
 from langchain_pinecone import PineconeVectorStore
 from pinecone import Pinecone
 
@@ -69,11 +70,19 @@ def index():
 def chat():
     try:
         msg = request.form["msg"]
-        response = rag_chain.invoke(msg)
-        # ✅ seedha string return karo
-        return jsonify({"response": str(response)})
+
+        # ✅ RAG answer + Image dono parallel fetch karo
+        response_text = rag_chain.invoke(msg)
+        # None ya {"image_url", "caption", ...}
+        image_data = get_medical_image(msg)
+
+        return jsonify({
+            "response": str(response_text),
+            "image": image_data              # None hoga agar koi image na mile
+        })
+
     except Exception as e:
-        return jsonify({"response": f"Error: {str(e)}"}), 500
+        return jsonify({"response": f"Error: {str(e)}", "image": None}), 500
 
 
 @app.route("/health")
