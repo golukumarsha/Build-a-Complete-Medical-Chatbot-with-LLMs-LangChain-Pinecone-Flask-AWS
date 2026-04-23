@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Search History — MediBot</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg:#070f18; --surface:#0d1b2a; --surface2:#112235; --border:#1a3a5c;
+      --accent:#00d9a0; --accent-dim:#00d9a015; --accent-glow:#00d9a035;
+      --blue:#4da8ff; --text:#d6eeff; --text2:#8aabcc;
+      --danger:#ff6b6b; --danger-dim:#ff6b6b14;
+      --hindi:#ff9f43; --hinglish:#a29bfe; --english:#4da8ff;
+      --radius:16px; --radius-sm:10px;
+    }
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+    html, body {
+      min-height:100%; background:var(--bg);
+      color:var(--text); font-family:'Sora',sans-serif; font-size:14.5px;
+    }
+    body::before {
+      content:''; position:fixed; inset:0; z-index:0;
+      background-image: radial-gradient(circle,#1a3a5c 1px,transparent 1px);
+      background-size:36px 36px; opacity:.18; pointer-events:none;
+    }
+
+    /* ── Header ── */
+    header {
+      position:sticky; top:0; z-index:50;
+      display:flex; align-items:center; gap:14px;
+      padding:14px 28px; background:var(--surface);
+      border-bottom:1px solid var(--border);
+      backdrop-filter:blur(10px);
+    }
+    .logo {
+      width:44px; height:44px; border-radius:12px; font-size:22px;
+      background:linear-gradient(135deg,#00d9a0,#4da8ff);
+      display:flex; align-items:center; justify-content:center;
+      box-shadow:0 0 20px var(--accent-glow); flex-shrink:0;
+    }
+    .htext h1 { font-family:'Playfair Display',serif; font-size:1.25rem; color:#fff; }
+    .htext h1 span { color:var(--accent); }
+    .htext p { font-size:.68rem; color:var(--text2); text-transform:uppercase; letter-spacing:.08em; margin-top:2px; }
+    .nav-btns { margin-left:auto; display:flex; gap:8px; }
+    .nav-btn {
+      background:var(--surface2); border:1px solid var(--border);
+      border-radius:10px; padding:7px 15px; color:var(--text2);
+      font-size:.78rem; cursor:pointer; text-decoration:none;
+      font-family:'Sora',sans-serif; transition:all .2s;
+    }
+    .nav-btn:hover { border-color:var(--accent); color:var(--accent); }
+
+    /* ── Page Layout ── */
+    .page { position:relative; z-index:1; max-width:920px; margin:0 auto; padding:28px 20px 60px; }
+
+    /* ── Stats Grid ── */
+    .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:24px; }
+    .stat-card {
+      background:var(--surface2); border:1px solid var(--border);
+      border-radius:var(--radius); padding:20px 18px;
+      transition:border-color .25s, transform .2s; cursor:default;
+    }
+    .stat-card:hover { border-color:var(--accent); transform:translateY(-2px); }
+    .stat-icon { font-size:1.4rem; margin-bottom:10px; display:block; }
+    .stat-num {
+      font-family:'Playfair Display',serif; font-size:2.2rem;
+      color:var(--accent); line-height:1;
+    }
+    .stat-num.loading { color:var(--border); }
+    .stat-label { font-size:.7rem; color:var(--text2); text-transform:uppercase; letter-spacing:.06em; margin-top:6px; }
+
+    /* ── Language Bar ── */
+    .lang-box {
+      background:var(--surface2); border:1px solid var(--border);
+      border-radius:var(--radius); padding:20px 22px; margin-bottom:20px;
+    }
+    .lang-box-title { font-size:.75rem; color:var(--text2); text-transform:uppercase; letter-spacing:.06em; margin-bottom:16px; }
+    .lang-row { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+    .lang-row:last-child { margin-bottom:0; }
+    .lang-name { width:88px; font-size:.82rem; color:var(--text); flex-shrink:0; }
+    .lang-track { flex:1; height:7px; background:var(--surface); border-radius:4px; overflow:hidden; }
+    .lang-fill { height:100%; border-radius:4px; transition:width .7s cubic-bezier(.4,0,.2,1); }
+    .lang-cnt { font-size:.78rem; color:var(--text2); width:36px; text-align:right; flex-shrink:0; }
+
+    /* ── Top Queries ── */
+    .top-box {
+      background:var(--surface2); border:1px solid var(--border);
+      border-radius:var(--radius); padding:20px 22px; margin-bottom:24px;
+    }
+    .top-box-title { font-size:.75rem; color:var(--accent); text-transform:uppercase; letter-spacing:.06em; margin-bottom:14px; }
+    .top-q {
+      display:flex; justify-content:space-between; align-items:center;
+      padding:9px 0; border-bottom:1px solid var(--border);
+    }
+    .top-q:last-child { border:none; padding-bottom:0; }
+    .top-q-text { font-size:.85rem; color:var(--text); }
+    .top-q-cnt {
+      background:var(--accent-dim); color:var(--accent);
+      border:1px solid var(--accent); border-radius:20px;
+      padding:2px 10px; font-size:.7rem; flex-shrink:0;
+    }
+
+    /* ── Toolbar ── */
+    .toolbar { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; align-items:center; }
+    .search-wrap {
+      flex:1; min-width:220px;
+      background:var(--surface2); border:1px solid var(--border);
+      border-radius:10px; display:flex; align-items:center; gap:8px;
+      padding:0 14px; transition:border-color .2s;
+    }
+    .search-wrap:focus-within { border-color:var(--accent); }
+    .search-wrap span { color:var(--text2); font-size:14px; flex-shrink:0; }
+    .search-input {
+      background:none; border:none; outline:none; color:var(--text);
+      font-family:'Sora',sans-serif; font-size:.82rem;
+      width:100%; padding:9px 0;
+    }
+    .search-input::placeholder { color:var(--text2); }
+
+    /* Filter Tabs */
+    .tabs { display:flex; gap:7px; flex-wrap:wrap; }
+    .tab {
+      background:var(--surface2); border:1px solid var(--border);
+      border-radius:20px; padding:6px 14px; font-size:.75rem;
+      color:var(--text2); cursor:pointer; font-family:'Sora',sans-serif;
+      transition:all .2s; white-space:nowrap;
+    }
+    .tab:hover { border-color:var(--accent); color:var(--accent); }
+    .tab.active { border-color:var(--accent); color:var(--accent); background:var(--accent-dim); }
+
+    /* ── Section Header ── */
+    .sec-hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; margin-top:4px; }
+    .sec-title { font-family:'Playfair Display',serif; font-size:1.3rem; color:#fff; }
+    .clear-btn {
+      background:var(--danger-dim); border:1px solid var(--danger);
+      border-radius:10px; padding:7px 15px; color:var(--danger);
+      font-size:.75rem; cursor:pointer; font-family:'Sora',sans-serif;
+      transition:all .2s;
+    }
+    .clear-btn:hover { background:var(--danger); color:#fff; }
+
+    /* ── Log Cards ── */
+    .log-card {
+      background:var(--surface2); border:1px solid var(--border);
+      border-radius:var(--radius-sm); padding:16px 20px;
+      margin-bottom:11px; animation:fadeUp .3s ease;
+      transition:border-color .2s;
+    }
+    .log-card:hover { border-color:var(--accent); }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+    .log-q {
+      font-size:.95rem; color:#fff; font-weight:600;
+      margin-bottom:6px; display:flex; align-items:flex-start; gap:8px;
+    }
+    .log-q-icon { opacity:.6; flex-shrink:0; }
+    .log-ans {
+      font-size:.8rem; color:var(--text2); line-height:1.65;
+      margin-bottom:11px;
+      display:-webkit-box; -webkit-line-clamp:2;
+      -webkit-box-orient:vertical; overflow:hidden;
+    }
+    .log-meta { display:flex; gap:7px; flex-wrap:wrap; }
+
+    /* Badges */
+    .badge { font-size:.67rem; border-radius:20px; padding:3px 10px; border:1px solid; }
+    .b-time    { color:var(--blue);    border-color:var(--blue);    background:#0a1520; }
+    .b-med     { color:var(--accent);  border-color:var(--accent);  background:var(--accent-dim); }
+    .b-img     { color:#4caf50;        border-color:#4caf50;         background:#0a1a0a; }
+    .b-hindi   { color:var(--hindi);   border-color:var(--hindi);   background:#1a1000; }
+    .b-hinglish{ color:var(--hinglish);border-color:var(--hinglish);background:#100d1f; }
+    .b-english { color:var(--english); border-color:var(--english); background:#0a1520; }
+
+    /* ── Empty / Loading / Error ── */
+    .empty { text-align:center; padding:60px 20px; color:var(--text2); }
+    .empty-icon { font-size:3rem; margin-bottom:14px; display:block; }
+    .empty a { color:var(--accent); text-decoration:none; }
+    .loading-spinner {
+      display:flex; flex-direction:column; align-items:center;
+      gap:14px; padding:50px 20px; color:var(--text2);
+    }
+    .spinner {
+      width:36px; height:36px; border:3px solid var(--border);
+      border-top-color:var(--accent); border-radius:50%;
+      animation:spin 0.9s linear infinite;
+    }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    /* ── Demo Banner ── */
+    .demo-banner {
+      background:#1a2a1a; border:1px solid #2a4a2a;
+      border-radius:var(--radius-sm); padding:12px 18px;
+      margin-bottom:20px; display:flex; align-items:center; gap:10px;
+      font-size:.8rem; color:#6dbf6d;
+    }
+
+    @media(max-width:620px) {
+      .stats { grid-template-columns:repeat(2,1fr); }
+      header { padding:12px 16px; }
+      .page { padding:20px 14px 40px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">📋</div>
+  <div class="htext">
+    <h1>Medi<span>Bot</span> — History</h1>
+    <p>Search Logs &amp; Analytics</p>
+  </div>
+  <div class="nav-btns">
+    <a href="/medicines" class="nav-btn">💊 Medicines</a>
+    <a href="/" class="nav-btn">🤖 Chatbot</a>
+  </div>
+</header>
+
+<div class="page">
+
+  <!-- Demo banner (sirf tab dikhega jab server nahi mila) -->
+  <div class="demo-banner" id="demo-banner" style="display:none">
+    ✅ Demo mode — Flask server se connect hone par real data dikhe ga. Abhi sample data dikh raha hai.
+  </div>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat-card">
+      <span class="stat-icon">🔍</span>
+      <div class="stat-num loading" id="st-total">—</div>
+      <div class="stat-label">Total Searches</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-icon">📅</span>
+      <div class="stat-num loading" id="st-today">—</div>
+      <div class="stat-label">Aaj Ki Searches</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-icon">🖼</span>
+      <div class="stat-num loading" id="st-img">—</div>
+      <div class="stat-label">Image Mili</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-icon">💊</span>
+      <div class="stat-num loading" id="st-match">—</div>
+      <div class="stat-label">Medicine Match</div>
+    </div>
+  </div>
+
+  <!-- Language Distribution -->
+  <div class="lang-box" id="lang-box" style="display:none">
+    <div class="lang-box-title">🌐 Language Distribution</div>
+    <div id="lang-bars"></div>
+  </div>
+
+  <!-- Top Queries -->
+  <div class="top-box" id="top-box" style="display:none">
+    <div class="top-box-title">🔥 Sabse Zyada Searches</div>
+    <div id="top-list"></div>
+  </div>
+
+  <!-- Toolbar: Search + Filters -->
+  <div class="toolbar">
+    <div class="search-wrap">
+      <span>🔎</span>
+      <input class="search-input" id="q-input" type="text"
+             placeholder="Logs mein dhundho..." oninput="renderLogs()"/>
+    </div>
+  </div>
+  <div class="tabs" style="margin-bottom:18px" id="tabs">
+    <button class="tab active" onclick="setFilter('all',this)">🌐 Sab</button>
+    <button class="tab" onclick="setFilter('hindi',this)">🇮🇳 Hindi</button>
+    <button class="tab" onclick="setFilter('hinglish',this)">🗣 Hinglish</button>
+    <button class="tab" onclick="setFilter('english',this)">🇬🇧 English</button>
+    <button class="tab" onclick="setFilter('image',this)">🖼 Image Wale</button>
+    <button class="tab" onclick="setFilter('medicine',this)">💊 Medicine Match</button>
+  </div>
+
+  <!-- Log List -->
+  <div class="sec-hdr">
+    <div class="sec-title">Recent Searches</div>
+    <button class="clear-btn" onclick="clearLogs()">🗑 Saare logs clear karo</button>
+  </div>
+
+  <div id="logs-wrap">
+    <div class="loading-spinner">
+      <div class="spinner"></div>
+      <span>Loading history...</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ══════════════════════════════════════
+   Sample data — dikhai deta hai jab
+   Flask/MongoDB nahi mila
+══════════════════════════════════════ */
+const SAMPLE_LOGS = [
+  {
+    query: "diabetes ka ilaj kya hai",
+    ai_response: "Diabetes ek chronic bimari hai jisme blood sugar control karna padta hai. Type 2 diabetes mein metformin pehli dawai hoti hai. Regular exercise aur diet control bahut zaroori hai.",
+    searched_at: "23 Apr 2026, 02:30 PM",
+    language: "hinglish",
+    matched_medicine: "Metformin",
+    image_found: true
+  },
+  {
+    query: "बुखार में क्या करें",
+    ai_response: "बुखार में सबसे पहले पेरासिटामोल 500mg लें। खूब पानी पिएं और आराम करें। अगर बुखार 3 दिन से ज्यादा रहे तो डॉक्टर से मिलें।",
+    searched_at: "23 Apr 2026, 01:15 PM",
+    language: "hindi",
+    matched_medicine: "Paracetamol",
+    image_found: false
+  },
+  {
+    query: "What is hypertension?",
+    ai_response: "Hypertension is a condition where blood pressure in the arteries is persistently elevated. It is often called the silent killer because it typically has no symptoms. Normal blood pressure is below 120/80 mmHg.",
+    searched_at: "23 Apr 2026, 11:45 AM",
+    language: "english",
+    matched_medicine: "Hypertension",
+    image_found: true
+  },
+  {
+    query: "sir dard ki dawa batao",
+    ai_response: "Sir dard ke liye Paracetamol 500mg ya Ibuprofen 400mg le sakte hain. Pani kam peena bhi sar dard ki wajah ban sakta hai, isliye hydrated rahein.",
+    searched_at: "23 Apr 2026, 10:20 AM",
+    language: "hinglish",
+    matched_medicine: "Paracetamol",
+    image_found: false
+  },
+  {
+    query: "मलेरिया के लक्षण",
+    ai_response: "मलेरिया के मुख्य लक्षण हैं: बार-बार बुखार आना, ठंड लगना, पसीना आना, सिरदर्द और मांसपेशियों में दर्द। यह Plasmodium परजीवी से होता है जो मच्छर के काटने से फैलता है।",
+    searched_at: "23 Apr 2026, 09:00 AM",
+    language: "hindi",
+    matched_medicine: "Malaria",
+    image_found: true
+  },
+  {
+    query: "How does aspirin work?",
+    ai_response: "Aspirin works by blocking COX enzymes that produce prostaglandins, chemicals that cause pain, fever, and inflammation. At low doses, it also prevents blood clots, making it useful for heart attack prevention.",
+    searched_at: "22 Apr 2026, 06:30 PM",
+    language: "english",
+    matched_medicine: "Aspirin",
+    image_found: true
+  }
+];
+
+const SAMPLE_STATS = {
+  total_searches: 6,
+  today_searches: 5,
+  image_found: 4,
+  medicine_matched: 6,
+  top_queries: [
+    {query:"diabetes ka ilaj kya hai",count:3},
+    {query:"बुखार में क्या करें",count:2},
+    {query:"sir dard ki dawa batao",count:2},
+    {query:"What is hypertension?",count:1}
+  ],
+  language_stats: { hindi:2, hinglish:2, english:2 }
+};
+
+/* ══════════════════════════════════════ */
+
+let allLogs   = [];
+let curFilter = 'all';
+let isDemo    = false;
+
+/* ── Stat card update ── */
+function setStat(id, val) {
+  const el = document.getElementById(id);
+  el.textContent = val ?? '—';
+  el.classList.remove('loading');
+}
+
+/* ── Language bars ── */
+function renderLangBars(langStats, total) {
+  if (!langStats || !Object.keys(langStats).length) return;
+  document.getElementById('lang-box').style.display = 'block';
+  const langs = [
+    {key:'hindi',    label:'🇮🇳 Hindi',    color:'var(--hindi)'},
+    {key:'hinglish', label:'🗣 Hinglish', color:'var(--hinglish)'},
+    {key:'english',  label:'🇬🇧 English',  color:'var(--english)'},
+  ];
+  document.getElementById('lang-bars').innerHTML = langs.map(l => {
+    const cnt = langStats[l.key] || 0;
+    const pct = total ? Math.round((cnt/total)*100) : 0;
+    return `<div class="lang-row">
+      <span class="lang-name">${l.label}</span>
+      <div class="lang-track">
+        <div class="lang-fill" style="width:${pct}%;background:${l.color}"></div>
+      </div>
+      <span class="lang-cnt">${cnt}</span>
+    </div>`;
+  }).join('');
+}
+
+/* ── Top queries ── */
+function renderTopQueries(topQ) {
+  if (!topQ || !topQ.length) return;
+  document.getElementById('top-box').style.display = 'block';
+  document.getElementById('top-list').innerHTML = topQ.map(q => `
+    <div class="top-q">
+      <span class="top-q-text">${esc(q.query)}</span>
+      <span class="top-q-cnt">${q.count}x</span>
+    </div>`).join('');
+}
+
+/* ── Load Stats ── */
+async function loadStats() {
+  try {
+    const r = await fetch('/api/logs/stats', {signal: AbortSignal.timeout(3000)});
+    const d = await r.json();
+    if (!d.success) throw new Error('no data');
+    const s = d.data;
+    setStat('st-total', s.total_searches ?? 0);
+    setStat('st-today', s.today_searches  ?? 0);
+    setStat('st-img',   s.image_found     ?? 0);
+    setStat('st-match', s.medicine_matched ?? 0);
+    renderTopQueries(s.top_queries);
+    renderLangBars(s.language_stats, s.total_searches);
+  } catch {
+    /* demo mode — sample stats dikhao */
+    isDemo = true;
+    document.getElementById('demo-banner').style.display = 'flex';
+    setStat('st-total', SAMPLE_STATS.total_searches);
+    setStat('st-today', SAMPLE_STATS.today_searches);
+    setStat('st-img',   SAMPLE_STATS.image_found);
+    setStat('st-match', SAMPLE_STATS.medicine_matched);
+    renderTopQueries(SAMPLE_STATS.top_queries);
+    renderLangBars(SAMPLE_STATS.language_stats, SAMPLE_STATS.total_searches);
+  }
+}
+
+/* ── Load Logs ── */
+async function loadLogs() {
+  try {
+    const r = await fetch('/api/logs?limit=200', {signal: AbortSignal.timeout(3000)});
+    const d = await r.json();
+    if (!d.success || !d.data) throw new Error('no data');
+    allLogs = d.data;
+  } catch {
+    allLogs = SAMPLE_LOGS;
+  }
+  renderLogs();
+}
+
+/* ── Render Logs ── */
+function renderLogs() {
+  const wrap = document.getElementById('logs-wrap');
+  const q    = (document.getElementById('q-input').value || '').toLowerCase();
+
+  const filtered = allLogs.filter(log => {
+    if (curFilter === 'hindi'    && log.language !== 'hindi')    return false;
+    if (curFilter === 'hinglish' && log.language !== 'hinglish') return false;
+    if (curFilter === 'english'  && log.language !== 'english')  return false;
+    if (curFilter === 'image'    && !log.image_found)            return false;
+    if (curFilter === 'medicine' && !log.matched_medicine)       return false;
+    if (q) {
+      const hay = (log.query + ' ' + log.ai_response).toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  if (!filtered.length) {
+    wrap.innerHTML = `<div class="empty">
+      <span class="empty-icon">📭</span>
+      Koi log nahi mila<br>
+      <a href="/">Chatbot pe jao aur kuch poochho</a>
+    </div>`;
+    return;
+  }
+
+  wrap.innerHTML = filtered.map(log => `
+    <div class="log-card">
+      <div class="log-q">
+        <span class="log-q-icon">❓</span>
+        <span>${esc(log.query)}</span>
+      </div>
+      <div class="log-ans">${esc(log.ai_response)}</div>
+      <div class="log-meta">
+        <span class="badge b-time">🕐 ${esc(log.searched_at)}</span>
+        ${langBadge(log.language)}
+        ${log.matched_medicine ? `<span class="badge b-med">💊 ${esc(log.matched_medicine)}</span>` : ''}
+        ${log.image_found      ? `<span class="badge b-img">🖼 Image mili</span>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+function langBadge(lang) {
+  if (lang === 'hindi')    return `<span class="badge b-hindi">🇮🇳 Hindi</span>`;
+  if (lang === 'hinglish') return `<span class="badge b-hinglish">🗣 Hinglish</span>`;
+  if (lang === 'english')  return `<span class="badge b-english">🇬🇧 English</span>`;
+  return '';
+}
+
+/* ── Filter ── */
+function setFilter(f, btn) {
+  curFilter = f;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  renderLogs();
+}
+
+/* ── Clear Logs ── */
+async function clearLogs() {
+  if (isDemo) { alert('⚠️ Demo mode mein logs clear nahi ho sakti. Flask server chalao.'); return; }
+  if (!confirm('Saare search logs delete karein? Ye undo nahi ho sakta.')) return;
+  try {
+    const r = await fetch('/api/logs', {method:'DELETE'});
+    const d = await r.json();
+    if (d.success) {
+      allLogs = [];
+      renderLogs();
+      setStat('st-total', 0);
+      setStat('st-today', 0);
+      alert('✅ ' + d.message);
+    } else {
+      alert('❌ ' + d.error);
+    }
+  } catch(e) { alert('❌ ' + e.message); }
+}
+
+/* ── Escape HTML ── */
+function esc(s) {
+  return String(s||'')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* ── Init ── */
+loadStats();
+loadLogs();
+</script>
+</body>
+</html>

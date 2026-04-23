@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Medicine Database — MediBot</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg:#070f18; --surface:#0d1b2a; --surface2:#112235; --surface3:#162d45;
+      --border:#1a3a5c; --accent:#00d9a0; --accent-dim:#00d9a015; --accent-glow:#00d9a035;
+      --blue:#4da8ff; --blue-dim:#4da8ff14; --text:#d6eeff; --text2:#8aabcc;
+      --danger:#ff6b6b; --danger-dim:#ff6b6b14;
+      --gold:#ffc94d; --gold-dim:#ffc94d15;
+      --purple:#b06fff; --purple-dim:#b06fff15;
+      --radius:16px; --radius-sm:10px;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;font-size:14.5px}
+    body::before{
+      content:'';position:fixed;inset:0;z-index:0;
+      background-image:radial-gradient(circle,#1a3a5c 1px,transparent 1px);
+      background-size:36px 36px;opacity:.2;pointer-events:none;
+    }
+
+    /* ── Header ── */
+    header{
+      position:relative;z-index:10;
+      display:flex;align-items:center;gap:14px;
+      padding:16px 28px;background:var(--surface);
+      border-bottom:1px solid var(--border);
+    }
+    .logo{
+      width:44px;height:44px;border-radius:12px;font-size:22px;
+      background:linear-gradient(135deg,#00d9a0,#4da8ff);
+      display:flex;align-items:center;justify-content:center;
+      box-shadow:0 0 20px var(--accent-glow);
+    }
+    .htext h1{font-family:'Playfair Display',serif;font-size:1.2rem;color:#fff}
+    .htext h1 span{color:var(--accent)}
+    .htext p{font-size:.7rem;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-top:2px}
+    .nav-btn{
+      margin-left:auto;
+      background:var(--surface2);border:1px solid var(--border);
+      border-radius:10px;padding:8px 16px;
+      color:var(--text2);font-size:.8rem;cursor:pointer;
+      text-decoration:none;font-family:'Sora',sans-serif;
+      transition:all .2s;
+    }
+    .nav-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+    /* ── Layout ── */
+    .page{
+      position:relative;z-index:1;
+      max-width:1100px;margin:0 auto;
+      padding:28px 22px;
+    }
+
+    /* ── Stats row ── */
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px}
+    .stat-card{
+      background:var(--surface2);border:1px solid var(--border);
+      border-radius:var(--radius);padding:18px 20px;
+      display:flex;flex-direction:column;gap:4px;
+      transition:border-color .2s;
+    }
+    .stat-card:hover{border-color:var(--accent)}
+    .stat-num{font-family:'Playfair Display',serif;font-size:2rem;color:#fff}
+    .stat-label{font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:.05em}
+    .stat-card.d .stat-num{color:var(--danger)}
+    .stat-card.m .stat-num{color:var(--blue)}
+    .stat-card.s .stat-num{color:var(--gold)}
+    .stat-card.t .stat-num{color:var(--accent)}
+
+    /* ── Controls ── */
+    .controls{
+      display:flex;gap:12px;margin-bottom:22px;flex-wrap:wrap;align-items:center;
+    }
+    .search-box{
+      flex:1;min-width:240px;
+      display:flex;align-items:center;gap:10px;
+      background:var(--surface2);border:1px solid var(--border);
+      border-radius:var(--radius-sm);padding:10px 16px;
+      transition:border-color .2s,box-shadow .2s;
+    }
+    .search-box:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+    .search-box input{
+      flex:1;background:none;border:none;outline:none;
+      color:var(--text);font-family:'Sora',sans-serif;font-size:.9rem;
+    }
+    .search-box input::placeholder{color:var(--text2)}
+    .filter-btns{display:flex;gap:8px}
+    .filter-btn{
+      background:var(--surface2);border:1px solid var(--border);
+      border-radius:8px;padding:9px 16px;
+      color:var(--text2);font-size:.78rem;cursor:pointer;
+      font-family:'Sora',sans-serif;transition:all .2s;
+    }
+    .filter-btn:hover,.filter-btn.active{
+      border-color:var(--accent);color:var(--accent);background:var(--accent-dim);
+    }
+    .filter-btn.dis.active{border-color:var(--danger);color:var(--danger);background:var(--danger-dim)}
+    .filter-btn.med.active{border-color:var(--blue);color:var(--blue);background:var(--blue-dim)}
+    .filter-btn.sup.active{border-color:var(--gold);color:var(--gold);background:var(--gold-dim)}
+
+    .add-btn{
+      background:linear-gradient(135deg,var(--accent),var(--blue));
+      border:none;border-radius:10px;padding:10px 20px;
+      color:#04111c;font-weight:600;font-size:.82rem;cursor:pointer;
+      font-family:'Sora',sans-serif;transition:transform .15s;
+      white-space:nowrap;
+    }
+    .add-btn:hover{transform:scale(1.04)}
+
+    /* ── Cards grid ── */
+    #cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:16px}
+
+    .med-card{
+      background:var(--surface2);border:1px solid var(--border);
+      border-radius:var(--radius);padding:20px;
+      transition:border-color .2s,transform .2s,box-shadow .2s;
+      animation:fadeUp .3s ease;
+    }
+    @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+    .med-card:hover{border-color:var(--accent);transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,217,160,.1)}
+
+    .card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px}
+    .med-name{font-family:'Playfair Display',serif;font-size:1.15rem;color:#fff;line-height:1.2}
+    .cat-badge{
+      font-size:.68rem;font-weight:600;border-radius:20px;padding:3px 10px;
+      white-space:nowrap;
+    }
+    .cat-badge.Disease   {background:var(--danger-dim);color:var(--danger);border:1px solid var(--danger)}
+    .cat-badge.Medicine  {background:var(--blue-dim);color:var(--blue);border:1px solid var(--blue)}
+    .cat-badge.Supplement{background:var(--gold-dim);color:var(--gold);border:1px solid var(--gold)}
+
+    .med-desc{font-size:.8rem;color:var(--text2);line-height:1.6;margin-bottom:14px;
+      display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+
+    .tag-row{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px}
+    .tag{
+      background:var(--surface3);border:1px solid var(--border);
+      border-radius:20px;padding:3px 10px;font-size:.7rem;color:var(--text2);
+    }
+
+    .dosage-row{
+      background:var(--surface3);border-radius:8px;padding:8px 12px;
+      font-size:.76rem;color:var(--text2);margin-bottom:12px;
+    }
+    .dosage-row span{color:var(--accent);font-weight:600}
+
+    .card-actions{display:flex;gap:8px;margin-top:4px}
+    .wiki-a{
+      flex:1;text-align:center;
+      background:var(--accent-dim);border:1px solid var(--accent);
+      border-radius:8px;padding:7px;
+      color:var(--accent);font-size:.75rem;text-decoration:none;
+      transition:background .2s;
+    }
+    .wiki-a:hover{background:var(--accent);color:#04111c}
+    .del-btn{
+      background:var(--danger-dim);border:1px solid var(--danger);
+      border-radius:8px;padding:7px 12px;
+      color:var(--danger);font-size:.75rem;cursor:pointer;
+      font-family:'Sora',sans-serif;transition:background .2s;
+    }
+    .del-btn:hover{background:var(--danger);color:#fff}
+
+    /* ── Loading / Empty ── */
+    .loading,.empty{
+      text-align:center;padding:60px 20px;color:var(--text2);
+      grid-column:1/-1;font-size:.9rem;
+    }
+    .loading .spin{font-size:2rem;animation:spin 1s linear infinite;display:block;margin-bottom:12px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* ── Modal ── */
+    .modal-overlay{
+      display:none;position:fixed;inset:0;z-index:100;
+      background:#000a;backdrop-filter:blur(4px);
+      align-items:center;justify-content:center;
+    }
+    .modal-overlay.open{display:flex}
+    .modal{
+      background:var(--surface);border:1px solid var(--border);
+      border-radius:var(--radius);padding:28px;width:100%;max-width:540px;
+      max-height:90vh;overflow-y:auto;
+      animation:fadeUp .25s ease;
+    }
+    .modal h2{font-family:'Playfair Display',serif;font-size:1.3rem;color:#fff;margin-bottom:20px}
+    .form-group{margin-bottom:14px}
+    .form-group label{display:block;font-size:.75rem;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em}
+    .form-group input,.form-group textarea,.form-group select{
+      width:100%;background:var(--surface2);border:1px solid var(--border);
+      border-radius:8px;padding:10px 14px;color:var(--text);
+      font-family:'Sora',sans-serif;font-size:.88rem;outline:none;
+      transition:border-color .2s;
+    }
+    .form-group input:focus,.form-group textarea:focus,.form-group select:focus{border-color:var(--accent)}
+    .form-group textarea{resize:vertical;min-height:80px}
+    .form-group select option{background:var(--surface2)}
+    .form-hint{font-size:.7rem;color:var(--text2);margin-top:4px}
+    .modal-actions{display:flex;gap:10px;margin-top:20px}
+    .save-btn{
+      flex:1;background:linear-gradient(135deg,var(--accent),var(--blue));
+      border:none;border-radius:10px;padding:11px;
+      color:#04111c;font-weight:600;font-size:.85rem;cursor:pointer;
+      font-family:'Sora',sans-serif;
+    }
+    .cancel-btn{
+      background:var(--surface2);border:1px solid var(--border);
+      border-radius:10px;padding:11px 20px;
+      color:var(--text2);cursor:pointer;font-family:'Sora',sans-serif;font-size:.85rem;
+    }
+    .cancel-btn:hover{border-color:var(--danger);color:var(--danger)}
+
+    /* toast */
+    .toast{
+      position:fixed;bottom:24px;right:24px;z-index:200;
+      background:var(--surface);border:1px solid var(--accent);
+      border-radius:10px;padding:12px 20px;color:var(--text);
+      font-size:.82rem;box-shadow:0 8px 24px rgba(0,0,0,.4);
+      transform:translateY(80px);opacity:0;
+      transition:all .3s ease;pointer-events:none;
+    }
+    .toast.show{transform:translateY(0);opacity:1}
+    .toast.error{border-color:var(--danger)}
+
+    @media(max-width:600px){
+      .stats{grid-template-columns:repeat(2,1fr)}
+      .controls{flex-direction:column}
+    }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<header>
+  <div class="logo">💊</div>
+  <div class="htext">
+    <h1>Medi<span>Bot</span> — Database</h1>
+    <p>Medicine &amp; Disease Information</p>
+  </div>
+  <a href="/" class="nav-btn">🤖 Chatbot pe jao</a>
+</header>
+
+<!-- Page -->
+<div class="page">
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat-card t"><div class="stat-num" id="st-total">—</div><div class="stat-label">Total Records</div></div>
+    <div class="stat-card d"><div class="stat-num" id="st-dis">—</div><div class="stat-label">Diseases</div></div>
+    <div class="stat-card m"><div class="stat-num" id="st-med">—</div><div class="stat-label">Medicines</div></div>
+    <div class="stat-card s"><div class="stat-num" id="st-sup">—</div><div class="stat-label">Supplements</div></div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <div class="search-box">
+      <span>🔍</span>
+      <input id="search-input" type="text" placeholder="Search by name, symptom, category..." oninput="onSearch()"/>
+    </div>
+    <div class="filter-btns">
+      <button class="filter-btn active" onclick="setFilter('all', this)">All</button>
+      <button class="filter-btn dis" onclick="setFilter('Disease', this)">🦠 Disease</button>
+      <button class="filter-btn med" onclick="setFilter('Medicine', this)">💊 Medicine</button>
+      <button class="filter-btn sup" onclick="setFilter('Supplement', this)">🌿 Supplement</button>
+    </div>
+    <button class="add-btn" onclick="openModal()">+ Add New</button>
+  </div>
+
+  <!-- Cards -->
+  <div id="cards-grid">
+    <div class="loading"><span class="spin">⚕️</span>Loading database...</div>
+  </div>
+
+</div>
+
+<!-- Add Modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h2>➕ Naya Record Add Karo</h2>
+
+    <div class="form-group">
+      <label>Name *</label>
+      <input id="f-name" type="text" placeholder="e.g. Paracetamol, Diabetes"/>
+    </div>
+    <div class="form-group">
+      <label>Category *</label>
+      <select id="f-category">
+        <option value="Disease">Disease</option>
+        <option value="Medicine">Medicine</option>
+        <option value="Supplement">Supplement</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Description</label>
+      <textarea id="f-desc" placeholder="Brief description..."></textarea>
+    </div>
+    <div class="form-group">
+      <label>Symptoms (comma separated)</label>
+      <input id="f-symptoms" type="text" placeholder="fatigue, fever, headache"/>
+      <div class="form-hint">Disease ke liye — kaise pehchane</div>
+    </div>
+    <div class="form-group">
+      <label>Treatment / Used For (comma separated)</label>
+      <input id="f-treatment" type="text" placeholder="pain relief, fever, inflammation"/>
+    </div>
+    <div class="form-group">
+      <label>Side Effects (comma separated)</label>
+      <input id="f-side" type="text" placeholder="nausea, headache, rash"/>
+      <div class="form-hint">Medicine/Supplement ke liye</div>
+    </div>
+    <div class="form-group">
+      <label>Dosage</label>
+      <input id="f-dosage" type="text" placeholder="e.g. 500mg twice daily"/>
+    </div>
+    <div class="form-group">
+      <label>Wikipedia URL</label>
+      <input id="f-wiki" type="text" placeholder="https://en.wikipedia.org/wiki/..."/>
+    </div>
+
+    <div class="modal-actions">
+      <button class="cancel-btn" onclick="closeModal()">Cancel</button>
+      <button class="save-btn" onclick="saveRecord()">💾 Save to Database</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  let allData = [];
+  let currentFilter = 'all';
+  let searchTimer = null;
+
+  // ── Load stats ──
+  async function loadStats() {
+    try {
+      const r = await fetch("/api/medicines/stats");
+      const d = await r.json();
+      if (d.success) {
+        document.getElementById("st-total").textContent = d.data.total;
+        document.getElementById("st-dis").textContent   = d.data.diseases;
+        document.getElementById("st-med").textContent   = d.data.medicines;
+        document.getElementById("st-sup").textContent   = d.data.supplements;
+      }
+    } catch(e) {}
+  }
+
+  // ── Load all medicines ──
+  async function loadAll() {
+    try {
+      const r = await fetch("/api/medicines");
+      const d = await r.json();
+      allData = d.data || [];
+      renderCards(allData);
+    } catch(e) {
+      document.getElementById("cards-grid").innerHTML =
+        '<div class="empty">❌ Database connect nahi hua. MongoDB chal raha hai?</div>';
+    }
+  }
+
+  // ── Filter ──
+  function setFilter(cat, btn) {
+    currentFilter = cat;
+    document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    applyFilter();
+  }
+
+  function applyFilter() {
+    let data = allData;
+    if (currentFilter !== 'all') data = data.filter(d => d.category === currentFilter);
+    const q = document.getElementById("search-input").value.trim().toLowerCase();
+    if (q) {
+      data = data.filter(d =>
+        (d.name||"").toLowerCase().includes(q) ||
+        (d.description||"").toLowerCase().includes(q) ||
+        (d.symptoms||[]).join(" ").toLowerCase().includes(q) ||
+        (d.treatment||[]).join(" ").toLowerCase().includes(q)
+      );
+    }
+    renderCards(data);
+  }
+
+  // ── Search ──
+  function onSearch() {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(applyFilter, 300);
+  }
+
+  // ── Render cards ──
+  function renderCards(data) {
+    const grid = document.getElementById("cards-grid");
+    if (!data.length) {
+      grid.innerHTML = '<div class="empty">🔍 Koi result nahi mila</div>';
+      return;
+    }
+
+    grid.innerHTML = data.map(item => {
+      const symptoms  = (item.symptoms  || []).slice(0,4).map(s => `<span class="tag">${s}</span>`).join("");
+      const treatment = (item.treatment || []).slice(0,3).map(t => `<span class="tag">✓ ${t}</span>`).join("");
+      const sideEffects = (item.side_effects || []).slice(0,3).map(s => `<span class="tag">⚠ ${s}</span>`).join("");
+
+      const dosageHtml = item.dosage
+        ? `<div class="dosage-row"><span>💊 Dosage:</span> ${item.dosage}</div>`
+        : "";
+
+      const wikiHref = item.wiki_url
+        ? `<a href="${item.wiki_url}" target="_blank" class="wiki-a">🔗 Wikipedia</a>`
+        : `<span class="wiki-a" style="opacity:.4;cursor:default">No link</span>`;
+
+      return `
+        <div class="med-card">
+          <div class="card-top">
+            <div class="med-name">${item.name}</div>
+            <div class="cat-badge ${item.category}">${item.category}</div>
+          </div>
+          <div class="med-desc">${item.description || "No description"}</div>
+          ${symptoms  ? `<div class="tag-row">🩺 ${symptoms}</div>` : ""}
+          ${treatment ? `<div class="tag-row">${treatment}</div>` : ""}
+          ${sideEffects ? `<div class="tag-row">${sideEffects}</div>` : ""}
+          ${dosageHtml}
+          <div class="card-actions">
+            ${wikiHref}
+            <button class="del-btn" onclick="deleteMed('${item.name}')">🗑 Delete</button>
+          </div>
+        </div>`;
+    }).join("");
+  }
+
+  // ── Delete ──
+  async function deleteMed(name) {
+    if (!confirm(`"${name}" delete karna chahte hain?`)) return;
+    try {
+      const r = await fetch(`/api/medicines/${encodeURIComponent(name)}`, { method: "DELETE" });
+      const d = await r.json();
+      showToast(d.message, d.success ? "success" : "error");
+      if (d.success) { await loadAll(); await loadStats(); }
+    } catch(e) { showToast("Error: " + e.message, "error"); }
+  }
+
+  // ── Modal ──
+  function openModal() {
+    document.getElementById("modal").classList.add("open");
+  }
+  function closeModal() {
+    document.getElementById("modal").classList.remove("open");
+    ["f-name","f-desc","f-symptoms","f-treatment","f-side","f-dosage","f-wiki"]
+      .forEach(id => document.getElementById(id).value = "");
+  }
+
+  async function saveRecord() {
+    const name = document.getElementById("f-name").value.trim();
+    if (!name) { showToast("Name required!", "error"); return; }
+
+    const toArr = id => document.getElementById(id).value
+      .split(",").map(s=>s.trim()).filter(Boolean);
+
+    const payload = {
+      name,
+      category:     document.getElementById("f-category").value,
+      description:  document.getElementById("f-desc").value.trim(),
+      symptoms:     toArr("f-symptoms"),
+      treatment:    toArr("f-treatment"),
+      side_effects: toArr("f-side"),
+      dosage:       document.getElementById("f-dosage").value.trim(),
+      wiki_url:     document.getElementById("f-wiki").value.trim(),
+    };
+
+    try {
+      const r = await fetch("/api/medicines", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const d = await r.json();
+      showToast(d.message, d.success ? "success" : "error");
+      if (d.success) { closeModal(); await loadAll(); await loadStats(); }
+    } catch(e) { showToast("Error: " + e.message, "error"); }
+  }
+
+  // ── Toast ──
+  function showToast(msg, type="success") {
+    const t = document.getElementById("toast");
+    t.textContent = (type === "success" ? "✅ " : "❌ ") + msg;
+    t.className = "toast show" + (type === "error" ? " error" : "");
+    setTimeout(() => t.classList.remove("show"), 3500);
+  }
+
+  // ── Init ──
+  loadStats();
+  loadAll();
+</script>
+</body>
+</html>
