@@ -1,610 +1,932 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>MediBot — AI Medical Assistant</title>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet"/>
-  <style>
-    /* ─── CSS Variables ─────────────────────────────── */
-    :root {
-      --bg:          #080e14;
-      --surface:     #0f1923;
-      --surface2:    #162030;
-      --border:      #1e3048;
-      --accent:      #00c896;
-      --accent-dim:  #00c89622;
-      --accent-glow: #00c89640;
-      --blue:        #3b9eff;
-      --blue-dim:    #3b9eff18;
-      --text:        #d8eaf8;
-      --muted:       #5a7a99;
-      --danger:      #ff5c5c;
-      --danger-dim:  #ff5c5c18;
-      --radius:      16px;
-      --radius-sm:   10px;
-    }
-
-    /* ─── Reset & Base ──────────────────────────────── */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    html, body {
-      height: 100%;
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Sora', sans-serif;
-      font-size: 15px;
-      line-height: 1.6;
-      overflow: hidden;
-    }
-
-    /* ─── Background grid texture ───────────────────── */
-    body::before {
-      content: '';
-      position: fixed; inset: 0;
-      background-image:
-        linear-gradient(var(--border) 1px, transparent 1px),
-        linear-gradient(90deg, var(--border) 1px, transparent 1px);
-      background-size: 48px 48px;
-      opacity: 0.18;
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    /* ─── Layout ─────────────────────────────────────── */
-    .app {
-      position: relative;
-      z-index: 1;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      max-width: 900px;
-      margin: 0 auto;
-    }
-
-    /* ─── Header ─────────────────────────────────────── */
-    header {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      padding: 18px 24px;
-      border-bottom: 1px solid var(--border);
-      background: var(--surface);
-      flex-shrink: 0;
-    }
-
-    .logo {
-      width: 44px; height: 44px;
-      border-radius: 12px;
-      background: linear-gradient(135deg, #00c896 0%, #3b9eff 100%);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 22px;
-      box-shadow: 0 0 20px var(--accent-glow);
-      flex-shrink: 0;
-    }
-
-    .header-text h1 {
-      font-family: 'Playfair Display', serif;
-      font-size: 1.3rem;
-      letter-spacing: -0.01em;
-      color: #fff;
-    }
-
-    .header-text h1 span { color: var(--accent); }
-
-    .header-text p {
-      font-size: 0.72rem;
-      color: var(--muted);
-      margin-top: 1px;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-    }
-
-    .status {
-      margin-left: auto;
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      background: var(--accent-dim);
-      border: 1px solid var(--accent);
-      border-radius: 20px;
-      padding: 5px 12px;
-      font-size: 0.75rem;
-      color: var(--accent);
-      font-weight: 500;
-    }
-
-    .status-dot {
-      width: 7px; height: 7px;
-      border-radius: 50%;
-      background: var(--accent);
-      box-shadow: 0 0 6px var(--accent);
-      animation: blink 2s infinite;
-    }
-
-    @keyframes blink {
-      0%,100% { opacity: 1; } 50% { opacity: 0.3; }
-    }
-
-    /* ─── Chat Area ──────────────────────────────────── */
-    #chat-box {
-      flex: 1;
-      overflow-y: auto;
-      padding: 28px 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-      scroll-behavior: smooth;
-    }
-
-    #chat-box::-webkit-scrollbar { width: 3px; }
-    #chat-box::-webkit-scrollbar-thumb {
-      background: var(--border);
-      border-radius: 3px;
-    }
-
-    /* ─── Welcome Screen ─────────────────────────────── */
-    #welcome {
-      margin: auto;
-      text-align: center;
-      max-width: 500px;
-      padding: 20px;
-      animation: fadeIn .6s ease;
-    }
-
-    .welcome-icon {
-      font-size: 3.5rem;
-      margin-bottom: 16px;
-      display: block;
-      animation: floatIcon 3s ease-in-out infinite;
-    }
-
-    @keyframes floatIcon {
-      0%,100% { transform: translateY(0); }
-      50%      { transform: translateY(-8px); }
-    }
-
-    #welcome h2 {
-      font-family: 'Playfair Display', serif;
-      font-size: 2rem;
-      color: #fff;
-      margin-bottom: 10px;
-    }
-
-    #welcome p {
-      color: var(--muted);
-      font-size: 0.9rem;
-      margin-bottom: 24px;
-    }
-
-    .chips {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 9px;
-    }
-
-    .chip {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 24px;
-      padding: 7px 16px;
-      font-size: 0.8rem;
-      color: var(--muted);
-      cursor: pointer;
-      font-family: 'Sora', sans-serif;
-      transition: all 0.2s;
-    }
-
-    .chip:hover {
-      border-color: var(--accent);
-      color: var(--accent);
-      background: var(--accent-dim);
-      transform: translateY(-1px);
-    }
-
-    /* ─── Message rows ───────────────────────────────── */
-    .msg-row {
-      display: flex;
-      align-items: flex-end;
-      gap: 10px;
-      animation: slideUp .28s ease;
-    }
-
-    @keyframes slideUp {
-      from { opacity:0; transform: translateY(12px); }
-      to   { opacity:1; transform: translateY(0); }
-    }
-
-    .msg-row.user { flex-direction: row-reverse; }
-
-    /* ─── Avatars ─────────────────────────────────────── */
-    .av {
-      width: 36px; height: 36px;
-      border-radius: 50%;
-      flex-shrink: 0;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 17px;
-    }
-
-    .av.bot  { background: linear-gradient(135deg, #00c896, #3b9eff); }
-    .av.user { background: linear-gradient(135deg, #3b9eff, #9b6fff); }
-
-    /* ─── Bubbles ─────────────────────────────────────── */
-    .bubble {
-      max-width: 68%;
-      padding: 13px 18px;
-      border-radius: var(--radius);
-      font-size: 0.9rem;
-      line-height: 1.7;
-      position: relative;
-    }
-
-    .bubble.bot {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-bottom-left-radius: 4px;
-      color: var(--text);
-    }
-
-    .bubble.user {
-      background: var(--blue-dim);
-      border: 1px solid var(--blue);
-      border-bottom-right-radius: 4px;
-      color: #c8e0ff;
-      text-align: right;
-    }
-
-    /* ─── Image Card ─────────────────────────────────── */
-    .img-card {
-      margin-top: 13px;
-      border-radius: var(--radius-sm);
-      overflow: hidden;
-      border: 1px solid var(--border);
-      background: var(--surface);
-      max-width: 300px;
-      transition: transform 0.2s, box-shadow 0.2s;
-      text-decoration: none;
-      display: block;
-    }
-
-    .img-card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 8px 24px rgba(0,200,150,0.15);
-      border-color: var(--accent);
-    }
-
-    .img-card img {
-      width: 100%;
-      height: 170px;
-      object-fit: cover;
-      display: block;
-      filter: saturate(0.9);
-      transition: filter 0.3s;
-    }
-
-    .img-card:hover img { filter: saturate(1.1); }
-
-    .img-info {
-      padding: 10px 13px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-    }
-
-    .img-title {
-      font-size: 0.82rem;
-      font-weight: 600;
-      color: var(--text);
-    }
-
-    .img-sub {
-      font-size: 0.73rem;
-      color: var(--muted);
-      margin-top: 2px;
-      text-transform: capitalize;
-    }
-
-    .wiki-badge {
-      font-size: 0.7rem;
-      color: var(--accent);
-      background: var(--accent-dim);
-      border: 1px solid var(--accent);
-      border-radius: 20px;
-      padding: 3px 9px;
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
-
-    /* ─── Typing dots ─────────────────────────────────── */
-    .typing-dots {
-      display: flex; gap: 5px;
-      align-items: center;
-      padding: 4px 0;
-    }
-
-    .typing-dots span {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      background: var(--accent);
-      animation: bounce 0.9s infinite;
-      display: inline-block;
-    }
-
-    .typing-dots span:nth-child(2) { animation-delay: 0.15s; }
-    .typing-dots span:nth-child(3) { animation-delay: 0.30s; }
-
-    @keyframes bounce {
-      0%,80%,100% { transform: scale(0.7); opacity: 0.4; }
-      40%          { transform: scale(1.2); opacity: 1; }
-    }
-
-    /* ─── Timestamp ──────────────────────────────────── */
-    .ts {
-      font-size: 0.68rem;
-      color: var(--muted);
-      text-align: center;
-      margin: -8px 0;
-    }
-
-    /* ─── Disclaimer bar ─────────────────────────────── */
-    .disclaimer {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: var(--danger-dim);
-      border: 1px solid var(--danger);
-      border-radius: var(--radius-sm);
-      padding: 8px 16px;
-      font-size: 0.75rem;
-      color: var(--danger);
-      margin: 0 20px 6px;
-      flex-shrink: 0;
-    }
-
-    /* ─── Input area ─────────────────────────────────── */
-    #input-area {
-      padding: 6px 20px 20px;
-      flex-shrink: 0;
-    }
-
-    .input-box {
-      display: flex;
-      align-items: flex-end;
-      gap: 10px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 10px 10px 10px 18px;
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-
-    .input-box:focus-within {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px var(--accent-glow);
-    }
-
-    textarea#msg {
-      flex: 1;
-      background: none;
-      border: none;
-      outline: none;
-      color: var(--text);
-      font-family: 'Sora', sans-serif;
-      font-size: 0.9rem;
-      resize: none;
-      max-height: 130px;
-      padding: 4px 0;
-      line-height: 1.55;
-    }
-
-    textarea#msg::placeholder { color: var(--muted); }
-
-    #send-btn {
-      width: 42px; height: 42px;
-      border-radius: 12px;
-      background: linear-gradient(135deg, var(--accent), #3b9eff);
-      border: none;
-      color: #000;
-      font-size: 19px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      transition: transform 0.15s, opacity 0.2s;
-      box-shadow: 0 4px 14px var(--accent-glow);
-    }
-
-    #send-btn:hover  { transform: scale(1.06); }
-    #send-btn:active { transform: scale(0.94); }
-
-    #send-btn:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    .hint {
-      text-align: center;
-      font-size: 0.7rem;
-      color: var(--muted);
-      margin-top: 8px;
-    }
-
-    /* ─── Animations ─────────────────────────────────── */
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(16px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-  </style>
-</head>
-<body>
-
-<div class="app">
-
-  <!-- ── Header ── -->
-  <header>
-    <div class="logo">🩺</div>
-    <div class="header-text">
-      <h1>Medi<span>Bot</span></h1>
-      <p>AI-Powered Medical Assistant</p>
-    </div>
-    <div class="status">
-      <div class="status-dot"></div>
-      Online
-    </div>
-  </header>
-
-  <!-- ── Chat Box ── -->
-  <div id="chat-box">
-    <div id="welcome">
-      <span class="welcome-icon">🏥</span>
-      <h2>Medical AI Assistant</h2>
-      <p>Apna medical question poochhe — answer ke saath related medical image bhi milegi.</p>
-      <div class="chips">
-        <div class="chip" onclick="quickAsk(this)">What is diabetes?</div>
-        <div class="chip" onclick="quickAsk(this)">Heart anatomy explain karo</div>
-        <div class="chip" onclick="quickAsk(this)">Asthma symptoms</div>
-        <div class="chip" onclick="quickAsk(this)">How does the brain work?</div>
-        <div class="chip" onclick="quickAsk(this)">What causes hypertension?</div>
-        <div class="chip" onclick="quickAsk(this)">Explain cancer cells</div>
-        <div class="chip" onclick="quickAsk(this)">What is a fracture?</div>
-        <div class="chip" onclick="quickAsk(this)">Lung function kaise hoti hai?</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── Disclaimer ── -->
-  <div class="disclaimer">
-    ⚠️ Yeh sirf educational information hai — professional medical advice ke liye doctor se milein.
-  </div>
-
-  <!-- ── Input Area ── -->
-  <div id="input-area">
-    <div class="input-box">
-      <textarea id="msg" rows="1" placeholder="Medical question yahan likho..."></textarea>
-      <button id="send-btn" onclick="sendMsg()" title="Send">&#10148;</button>
-    </div>
-    <div class="hint">Enter = Send &nbsp;|&nbsp; Shift+Enter = Naya line</div>
-  </div>
-
-</div>
-
-<!-- ─────────────── JavaScript ─────────────── -->
-<script>
-  const chatBox  = document.getElementById("chat-box");
-  const msgInput = document.getElementById("msg");
-  const sendBtn  = document.getElementById("send-btn");
-
-  /* ── Auto-resize textarea ── */
-  msgInput.addEventListener("input", () => {
-    msgInput.style.height = "auto";
-    msgInput.style.height = Math.min(msgInput.scrollHeight, 130) + "px";
-  });
-
-  /* ── Enter to send, Shift+Enter for newline ── */
-  msgInput.addEventListener("keydown", e => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendMsg();
-    }
-  });
-
-  /* ── Quick suggestion chips ── */
-  function quickAsk(el) {
-    msgInput.value = el.textContent.trim();
-    sendMsg();
-  }
-
-  /* ── Escape HTML (user input only — XSS protection) ── */
-  function esc(s) {
-    return String(s)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/\n/g, "<br>");
-  }
-
-  /* ── Render Markdown for bot responses ── */
-  function renderMarkdown(s) {
-    return String(s)
-      // Bold: **text** or __text__
-      .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-      .replace(/__(.*?)__/g, "<strong>$1</strong>")
-      // Italic: *text* or _text_
-      .replace(/\*(.*?)\*/g, "<em>$1</em>")
-      // Numbered list: lines starting with "1. 2. 3."
-      .replace(/^\d+\.\s+(.+)$/gm, "<li>$1</li>")
-      // Bullet list: lines starting with - or *
-      .replace(/^[-•]\s+(.+)$/gm, "<li>$1</li>")
-      // Wrap consecutive <li> items in <ol> or <ul>
-      .replace(/(<li>.*<\/li>)/gs, "<ul style='padding-left:18px;margin:6px 0'>$1</ul>")
-      // Line breaks
-      .replace(/\n/g, "<br>");
-  }
-
-  /* ── Current time string ── */
-  function timeNow() {
-    return new Date().toLocaleTimeString('en-IN', {
-      hour: '2-digit', minute: '2-digit'
-    });
-  }
-
-  /* ── Generic append helper ── */
-  function append(html) {
-    const tmp = document.createElement("div");
-    tmp.innerHTML = html.trim();
-    const el = tmp.firstElementChild;
-    chatBox.appendChild(el);
-    chatBox.scrollTop = chatBox.scrollHeight;
-    return el;
-  }
-
-  /* ── Append user message ── */
-  function appendUser(text) {
-    append(`
-      <div class="msg-row user">
-        <div class="av user">👤</div>
-        <div class="bubble user">${esc(text)}</div>
-      </div>`);
-    append(`<div class="ts">${timeNow()}</div>`);
-  }
-
-  /* ── Append animated typing indicator ── */
-  function appendTyping() {
-    return append(`
-      <div class="msg-row" id="typing-row">
-        <div class="av bot">🤖</div>
-        <div class="bubble bot">
-          <div class="typing-dots">
-            <span></span><span></span><span></span>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MediBot — AI Medical Assistant</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Sora:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #080e14;
+        --surface: #0f1923;
+        --surface2: #162030;
+        --border: #1e3048;
+        --accent: #00c896;
+        --accent-dim: #00c89622;
+        --accent-glow: #00c89640;
+        --blue: #3b9eff;
+        --blue-dim: #3b9eff18;
+        --text: #d8eaf8;
+        --muted: #5a7a99;
+        --danger: #ff5c5c;
+        --danger-dim: #ff5c5c18;
+        --radius: 16px;
+        --radius-sm: 10px;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html,
+      body {
+        height: 100%;
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Sora", sans-serif;
+        font-size: 15px;
+        line-height: 1.6;
+        overflow: hidden;
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background-image:
+          linear-gradient(var(--border) 1px, transparent 1px),
+          linear-gradient(90deg, var(--border) 1px, transparent 1px);
+        background-size: 48px 48px;
+        opacity: 0.18;
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .app {
+        position: relative;
+        z-index: 1;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        max-width: 960px;
+        margin: 0 auto;
+      }
+
+      /* ── HEADER ── */
+      header {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 14px 22px;
+        border-bottom: 1px solid var(--border);
+        background: var(--surface);
+        flex-shrink: 0;
+      }
+      .logo {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #00c896 0%, #3b9eff 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        box-shadow: 0 0 20px var(--accent-glow);
+        flex-shrink: 0;
+      }
+      .header-text h1 {
+        font-family: "Playfair Display", serif;
+        font-size: 1.2rem;
+        color: #fff;
+      }
+      .header-text h1 span {
+        color: var(--accent);
+      }
+      .header-text p {
+        font-size: 0.68rem;
+        color: var(--muted);
+        margin-top: 1px;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      .nav-area {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .nav-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 7px 14px;
+        color: var(--muted);
+        font-size: 0.78rem;
+        text-decoration: none;
+        font-family: "Sora", sans-serif;
+        transition: all 0.2s;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .nav-btn:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+        background: var(--accent-dim);
+      }
+
+      .status-dot-wrap {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        background: var(--accent-dim);
+        border: 1px solid var(--accent);
+        border-radius: 20px;
+        padding: 5px 12px;
+        font-size: 0.74rem;
+        color: var(--accent);
+        font-weight: 500;
+      }
+      .status-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--accent);
+        box-shadow: 0 0 6px var(--accent);
+        animation: blink 2s infinite;
+      }
+      @keyframes blink {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.3;
+        }
+      }
+
+      /* ── CHAT ── */
+      #chat-box {
+        flex: 1;
+        overflow-y: auto;
+        padding: 28px 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        scroll-behavior: smooth;
+      }
+      #chat-box::-webkit-scrollbar {
+        width: 3px;
+      }
+      #chat-box::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 3px;
+      }
+
+      /* ── WELCOME ── */
+      #welcome {
+        margin: auto;
+        text-align: center;
+        max-width: 520px;
+        padding: 20px;
+        animation: fadeIn 0.6s ease;
+      }
+      .welcome-icon {
+        font-size: 3.5rem;
+        margin-bottom: 16px;
+        display: block;
+        animation: floatIcon 3s ease-in-out infinite;
+      }
+      @keyframes floatIcon {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-8px);
+        }
+      }
+      #welcome h2 {
+        font-family: "Playfair Display", serif;
+        font-size: 2rem;
+        color: #fff;
+        margin-bottom: 10px;
+      }
+      #welcome p {
+        color: var(--muted);
+        font-size: 0.9rem;
+        margin-bottom: 24px;
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 9px;
+      }
+      .chip {
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        padding: 7px 16px;
+        font-size: 0.8rem;
+        color: var(--muted);
+        cursor: pointer;
+        font-family: "Sora", sans-serif;
+        transition: all 0.2s;
+      }
+      .chip:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+        background: var(--accent-dim);
+        transform: translateY(-1px);
+      }
+
+      /* ── MESSAGES ── */
+      .msg-row {
+        display: flex;
+        align-items: flex-end;
+        gap: 10px;
+        animation: slideUp 0.28s ease;
+      }
+      @keyframes slideUp {
+        from {
+          opacity: 0;
+          transform: translateY(12px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .msg-row.user {
+        flex-direction: row-reverse;
+      }
+      .av {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 17px;
+      }
+      .av.bot {
+        background: linear-gradient(135deg, #00c896, #3b9eff);
+      }
+      .av.user {
+        background: linear-gradient(135deg, #3b9eff, #9b6fff);
+      }
+      .bubble {
+        max-width: 68%;
+        padding: 13px 18px;
+        border-radius: var(--radius);
+        font-size: 0.9rem;
+        line-height: 1.7;
+      }
+      .bubble.bot {
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-bottom-left-radius: 4px;
+        color: var(--text);
+      }
+      .bubble.user {
+        background: var(--blue-dim);
+        border: 1px solid var(--blue);
+        border-bottom-right-radius: 4px;
+        color: #c8e0ff;
+        text-align: right;
+      }
+      .ts {
+        text-align: center;
+        font-size: 0.68rem;
+        color: var(--muted);
+        margin-top: -10px;
+      }
+
+      /* ── IMAGE CARD ── */
+      .img-card {
+        margin-top: 13px;
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        max-width: 300px;
+        transition:
+          transform 0.2s,
+          box-shadow 0.2s;
+        text-decoration: none;
+        display: block;
+      }
+      .img-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 24px rgba(0, 200, 150, 0.15);
+        border-color: var(--accent);
+      }
+      .img-card img {
+        width: 100%;
+        height: 170px;
+        object-fit: cover;
+        display: block;
+        filter: saturate(0.9);
+      }
+      .img-info {
+        padding: 10px 13px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+      }
+      .img-title {
+        font-size: 0.8rem;
+        color: var(--text);
+        font-weight: 600;
+      }
+      .img-sub {
+        font-size: 0.72rem;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+      .wiki-badge {
+        font-size: 0.68rem;
+        background: var(--accent-dim);
+        border: 1px solid var(--accent);
+        color: var(--accent);
+        border-radius: 6px;
+        padding: 3px 8px;
+        flex-shrink: 0;
+      }
+
+      /* ── TYPING ── */
+      .typing-dots {
+        display: flex;
+        gap: 5px;
+        padding: 4px 2px;
+      }
+      .typing-dots span {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--accent);
+        animation: dot 1.2s infinite;
+      }
+      .typing-dots span:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+      .typing-dots span:nth-child(3) {
+        animation-delay: 0.4s;
+      }
+      @keyframes dot {
+        0%,
+        80%,
+        100% {
+          transform: scale(0.7);
+          opacity: 0.4;
+        }
+        40% {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+
+      /* ── DISCLAIMER ── */
+      .disclaimer {
+        text-align: center;
+        font-size: 0.72rem;
+        color: var(--danger);
+        background: var(--danger-dim);
+        border-top: 1px solid var(--border);
+        padding: 9px 20px;
+        flex-shrink: 0;
+      }
+
+      /* ── INPUT AREA ── */
+      #input-area {
+        padding: 14px 18px 16px;
+        background: var(--surface);
+        border-top: 1px solid var(--border);
+        flex-shrink: 0;
+      }
+      .input-box {
+        display: flex;
+        align-items: flex-end;
+        gap: 10px;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 10px 14px;
+        transition: border-color 0.2s;
+      }
+      .input-box:focus-within {
+        border-color: var(--accent);
+      }
+
+      textarea#msg {
+        flex: 1;
+        background: none;
+        border: none;
+        outline: none;
+        color: var(--text);
+        font-family: "Sora", sans-serif;
+        font-size: 0.9rem;
+        resize: none;
+        max-height: 130px;
+        padding: 4px 0;
+        line-height: 1.55;
+      }
+      textarea#msg::placeholder {
+        color: var(--muted);
+      }
+
+      /* ── MIC BUTTON ── */
+      #mic-btn {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        color: var(--muted);
+        font-size: 18px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition: all 0.2s;
+      }
+      #mic-btn:hover {
+        border-color: var(--blue);
+        color: var(--blue);
+      }
+
+      /* Mic ACTIVE state — jab bola ja raha ho */
+      #mic-btn.listening {
+        background: rgba(255, 80, 80, 0.15);
+        border-color: #ff5555;
+        color: #ff5555;
+        animation: micPulse 1s ease-in-out infinite;
+      }
+      @keyframes micPulse {
+        0%,
+        100% {
+          box-shadow: 0 0 0 0 rgba(255, 80, 80, 0.4);
+        }
+        50% {
+          box-shadow: 0 0 0 8px rgba(255, 80, 80, 0);
+        }
+      }
+
+      /* ── SEND BUTTON ── */
+      #send-btn {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, var(--accent), #3b9eff);
+        border: none;
+        color: #000;
+        font-size: 19px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition:
+          transform 0.15s,
+          opacity 0.2s;
+        box-shadow: 0 4px 14px var(--accent-glow);
+      }
+      #send-btn:hover {
+        transform: scale(1.06);
+      }
+      #send-btn:active {
+        transform: scale(0.94);
+      }
+      #send-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      /* ── MIC STATUS BAR ── */
+      #mic-status {
+        display: none;
+        align-items: center;
+        gap: 8px;
+        margin-top: 8px;
+        padding: 7px 14px;
+        background: rgba(255, 80, 80, 0.08);
+        border: 1px solid rgba(255, 80, 80, 0.3);
+        border-radius: 10px;
+        font-size: 0.75rem;
+        color: #ff7070;
+        animation: fadeIn 0.3s ease;
+      }
+      #mic-status.show {
+        display: flex;
+      }
+      .mic-wave {
+        display: flex;
+        gap: 3px;
+        align-items: center;
+      }
+      .mic-wave span {
+        display: inline-block;
+        width: 3px;
+        border-radius: 2px;
+        background: #ff5555;
+        animation: wave 1s ease-in-out infinite;
+      }
+      .mic-wave span:nth-child(1) {
+        height: 8px;
+        animation-delay: 0s;
+      }
+      .mic-wave span:nth-child(2) {
+        height: 14px;
+        animation-delay: 0.15s;
+      }
+      .mic-wave span:nth-child(3) {
+        height: 10px;
+        animation-delay: 0.3s;
+      }
+      .mic-wave span:nth-child(4) {
+        height: 16px;
+        animation-delay: 0.1s;
+      }
+      .mic-wave span:nth-child(5) {
+        height: 8px;
+        animation-delay: 0.25s;
+      }
+      @keyframes wave {
+        0%,
+        100% {
+          transform: scaleY(0.5);
+          opacity: 0.5;
+        }
+        50% {
+          transform: scaleY(1);
+          opacity: 1;
+        }
+      }
+
+      .hint {
+        text-align: center;
+        font-size: 0.7rem;
+        color: var(--muted);
+        margin-top: 8px;
+      }
+
+      /* ── MIC NOT SUPPORTED TOAST ── */
+      .toast {
+        position: fixed;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #1e2d3d;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px 20px;
+        font-size: 0.8rem;
+        color: var(--text);
+        z-index: 999;
+        animation: fadeIn 0.3s ease;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateX(-50%) translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(-50%) translateY(0);
+        }
+      }
+
+      @media (max-width: 600px) {
+        .nav-btn span {
+          display: none;
+        }
+        header {
+          padding: 12px 14px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <!-- HEADER -->
+      <header>
+        <div class="logo">🩺</div>
+        <div class="header-text">
+          <h1>Medi<span>Bot</span></h1>
+          <p>AI-Powered Medical Assistant</p>
+        </div>
+        <div class="nav-area">
+          <a href="/history" class="nav-btn">📋 <span>History</span></a>
+          <a href="/medicines" class="nav-btn">💊 <span>Medicines</span></a>
+          <div class="status-dot-wrap">
+            <div class="status-dot"></div>
+            Online
           </div>
         </div>
-      </div>`);
-  }
+      </header>
 
-  /* ── Append bot reply with optional image ── */
-  function appendBot(text, image) {
-    /*
-      image object (from updated app.py with image_helper):
-        { image_url, title, caption, wiki_url }
-      If original app.py used (no image support), image will be null/undefined.
-    */
-    let imgHtml = "";
-    if (image && image.image_url) {
-      const wikiHref = image.wiki_url || "#";
-      const imgTitle = image.medicine_name || image.wiki_title || 'Medical Info';
-      const imgDesc  = image.description || '';
-      imgHtml = `
+      <!-- CHAT BOX -->
+      <div id="chat-box">
+        <div id="welcome">
+          <span class="welcome-icon">🏥</span>
+          <h2>Medical AI Assistant</h2>
+          <p>
+            Apna medical question poochhe — Hindi, Hinglish ya English mein.<br />Type
+            karo ya 🎤 <strong>mic</strong> se bolo!
+          </p>
+          <div class="chips">
+            <div class="chip" onclick="quickAsk(this)">What is diabetes?</div>
+            <div class="chip" onclick="quickAsk(this)">
+              Heart anatomy explain karo
+            </div>
+            <div class="chip" onclick="quickAsk(this)">Asthma symptoms</div>
+            <div class="chip" onclick="quickAsk(this)">
+              How does the brain work?
+            </div>
+            <div class="chip" onclick="quickAsk(this)">
+              बुखार में क्या करें?
+            </div>
+            <div class="chip" onclick="quickAsk(this)">
+              What causes hypertension?
+            </div>
+            <div class="chip" onclick="quickAsk(this)">
+              sir dard ki dawa batao
+            </div>
+            <div class="chip" onclick="quickAsk(this)">
+              Lung function kaise hoti hai?
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DISCLAIMER -->
+      <div class="disclaimer">
+        ⚠️ Yeh sirf educational information hai — professional medical advice ke
+        liye doctor se milein.
+      </div>
+
+      <!-- INPUT AREA -->
+      <div id="input-area">
+        <div class="input-box">
+          <textarea
+            id="msg"
+            rows="1"
+            placeholder="Type karo ya mic se bolo... (Hindi / Hinglish / English)"
+          ></textarea>
+
+          <!-- MIC BUTTON -->
+          <button id="mic-btn" onclick="toggleMic()" title="Mic se bolo">
+            🎤
+          </button>
+
+          <!-- SEND BUTTON -->
+          <button id="send-btn" onclick="sendMsg()" title="Send">
+            &#10148;
+          </button>
+        </div>
+
+        <!-- MIC STATUS BAR -->
+        <div id="mic-status">
+          <div class="mic-wave">
+            <span></span><span></span><span></span><span></span><span></span>
+          </div>
+          <span id="mic-status-text">Sun raha hoon... bolo</span>
+          <span
+            style="margin-left: auto; cursor: pointer; color: #ff5555"
+            onclick="stopMic()"
+            >✕ Band karo</span
+          >
+        </div>
+
+        <div class="hint">
+          Enter = Send &nbsp;|&nbsp; Shift+Enter = Naya line &nbsp;|&nbsp; 🎤 =
+          Bolke poochho
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const chatBox = document.getElementById("chat-box");
+      const msgInput = document.getElementById("msg");
+      const sendBtn = document.getElementById("send-btn");
+      const micBtn = document.getElementById("mic-btn");
+      const micStatus = document.getElementById("mic-status");
+      const micStatusText = document.getElementById("mic-status-text");
+
+      /* ── Auto-resize textarea ── */
+      msgInput.addEventListener("input", () => {
+        msgInput.style.height = "auto";
+        msgInput.style.height = Math.min(msgInput.scrollHeight, 130) + "px";
+      });
+
+      /* ── Enter = send ── */
+      msgInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          sendMsg();
+        }
+      });
+
+      function quickAsk(el) {
+        msgInput.value = el.textContent.trim();
+        sendMsg();
+      }
+
+      /* ════════════════════════════════════
+     🎤 MIC / SPEECH RECOGNITION
+  ════════════════════════════════════ */
+      let recognition = null;
+      let isListening = false;
+
+      function setupMic() {
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SR) return null;
+
+        const r = new SR();
+        r.continuous = false; // ek baar bolo, ruk jao
+        r.interimResults = true; // bolte bolte text dikhe
+        r.maxAlternatives = 1;
+
+        // Hindi + English + Hinglish — in order of preference
+        r.lang = "hi-IN";
+
+        r.onstart = () => {
+          isListening = true;
+          micBtn.classList.add("listening");
+          micBtn.textContent = "🔴";
+          micStatus.classList.add("show");
+          micStatusText.textContent = "Sun raha hoon... bolo";
+        };
+
+        r.onresult = (e) => {
+          let interim = "";
+          let final = "";
+          for (let i = e.resultIndex; i < e.results.length; i++) {
+            if (e.results[i].isFinal) {
+              final += e.results[i][0].transcript;
+            } else {
+              interim += e.results[i][0].transcript;
+            }
+          }
+          // Bolte waqt textarea mein dikhao
+          msgInput.value = final || interim;
+          msgInput.style.height = "auto";
+          msgInput.style.height = Math.min(msgInput.scrollHeight, 130) + "px";
+
+          if (final) {
+            micStatusText.textContent = "✅ Suna! Bhej raha hoon...";
+            setTimeout(() => {
+              stopMic();
+              if (msgInput.value.trim()) sendMsg();
+            }, 600);
+          }
+        };
+
+        r.onerror = (e) => {
+          console.error("Mic error:", e.error);
+          let msg = "Kuch problem aayi";
+          if (e.error === "not-allowed")
+            msg = "❌ Mic permission nahi mili — browser mein allow karo";
+          if (e.error === "no-speech")
+            msg = "🔇 Koi awaaz nahi aayi — dobara try karo";
+          if (e.error === "network") msg = "❌ Network error";
+          micStatusText.textContent = msg;
+          setTimeout(stopMic, 2000);
+        };
+
+        r.onend = () => {
+          stopMic();
+        };
+
+        return r;
+      }
+
+      function toggleMic() {
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SR) {
+          showToast(
+            "❌ Aapka browser mic support nahi karta. Chrome use karo.",
+          );
+          return;
+        }
+        if (isListening) {
+          stopMic();
+        } else {
+          startMic();
+        }
+      }
+
+      function startMic() {
+        recognition = setupMic();
+        if (!recognition) {
+          showToast("❌ Mic support nahi hai. Chrome use karo.");
+          return;
+        }
+        try {
+          recognition.start();
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
+      function stopMic() {
+        isListening = false;
+        micBtn.classList.remove("listening");
+        micBtn.textContent = "🎤";
+        micStatus.classList.remove("show");
+        if (recognition) {
+          try {
+            recognition.stop();
+          } catch (e) {}
+          recognition = null;
+        }
+      }
+
+      /* ── Toast notification ── */
+      function showToast(msg) {
+        const t = document.createElement("div");
+        t.className = "toast";
+        t.textContent = msg;
+        document.body.appendChild(t);
+        setTimeout(() => t.remove(), 3500);
+      }
+
+      /* ════════════════════════════════════
+     CHAT FUNCTIONS
+  ════════════════════════════════════ */
+      function esc(s) {
+        return String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/\n/g, "<br>");
+      }
+
+      function renderMarkdown(s) {
+        return String(s)
+          .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+          .replace(/__(.*?)__/g, "<strong>$1</strong>")
+          .replace(/\*(.*?)\*/g, "<em>$1</em>")
+          .replace(/^\d+\.\s+(.+)$/gm, "<li>$1</li>")
+          .replace(/^[-•]\s+(.+)$/gm, "<li>$1</li>")
+          .replace(
+            /(<li>.*<\/li>)/gs,
+            "<ul style='padding-left:18px;margin:6px 0'>$1</ul>",
+          )
+          .replace(/\n/g, "<br>");
+      }
+
+      function timeNow() {
+        return new Date().toLocaleTimeString("en-IN", {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      }
+
+      function append(html) {
+        const tmp = document.createElement("div");
+        tmp.innerHTML = html.trim();
+        const el = tmp.firstElementChild;
+        chatBox.appendChild(el);
+        chatBox.scrollTop = chatBox.scrollHeight;
+        return el;
+      }
+
+      function appendUser(text) {
+        append(`<div class="msg-row user">
+      <div class="av user">👤</div>
+      <div class="bubble user">${esc(text)}</div>
+    </div>`);
+        append(`<div class="ts">${timeNow()}</div>`);
+      }
+
+      function appendTyping() {
+        return append(`<div class="msg-row" id="typing-row">
+      <div class="av bot">🤖</div>
+      <div class="bubble bot">
+        <div class="typing-dots"><span></span><span></span><span></span></div>
+      </div>
+    </div>`);
+      }
+
+      function appendBot(text, image) {
+        let imgHtml = "";
+        if (image && image.image_url) {
+          const wikiHref = image.wiki_url || "#";
+          const imgTitle =
+            image.medicine_name || image.wiki_title || "Medical Info";
+          const imgDesc = image.description || "";
+          imgHtml = `
         <a class="img-card" href="${wikiHref}" target="_blank" rel="noopener noreferrer">
-          <img
-            src="${image.image_url}"
-            alt="${imgTitle}"
-            loading="lazy"
-            onerror="this.closest('.img-card').remove()"
-          />
+          <img src="${image.image_url}" alt="${imgTitle}" loading="lazy"
+               onerror="this.closest('.img-card').remove()"/>
           <div class="img-info">
             <div>
               <div class="img-title">${imgTitle}</div>
@@ -613,62 +935,49 @@
             <div class="wiki-badge">Wikipedia ↗</div>
           </div>
         </a>`;
-    }
+        }
+        append(`<div class="msg-row">
+      <div class="av bot">🤖</div>
+      <div class="bubble bot">
+        ${renderMarkdown(text)}
+        ${imgHtml}
+      </div>
+    </div>`);
+        append(`<div class="ts">${timeNow()}</div>`);
+      }
 
-    append(`
-      <div class="msg-row">
-        <div class="av bot">🤖</div>
-        <div class="bubble bot">
-          ${renderMarkdown(text)}
-          ${imgHtml}
-        </div>
-      </div>`);
-    append(`<div class="ts">${timeNow()}</div>`);
-  }
+      async function sendMsg() {
+        const text = msgInput.value.trim();
+        if (!text) return;
 
-  /* ── Main send function ── */
-  async function sendMsg() {
-    const text = msgInput.value.trim();
-    if (!text) return;
+        const welcome = document.getElementById("welcome");
+        if (welcome) welcome.remove();
 
-    /* Hide welcome screen on first real message */
-    const welcome = document.getElementById("welcome");
-    if (welcome) welcome.remove();
+        appendUser(text);
+        msgInput.value = "";
+        msgInput.style.height = "auto";
+        sendBtn.disabled = true;
 
-    appendUser(text);
-    msgInput.value = "";
-    msgInput.style.height = "auto";
-    sendBtn.disabled = true;
+        const typingRow = appendTyping();
 
-    const typingRow = appendTyping();
+        try {
+          const fd = new FormData();
+          fd.append("msg", text);
+          const res = await fetch("/get", { method: "POST", body: fd });
+          const data = await res.json();
+          typingRow.remove();
+          appendBot(data.response, data.image || null);
+        } catch (err) {
+          typingRow.remove();
+          appendBot(
+            "❌ Server se connect nahi ho saka. Flask app chal raha hai? Dobara try karo.",
+            null,
+          );
+        }
 
-    try {
-      const fd = new FormData();
-      fd.append("msg", text);
-
-      const res  = await fetch("/get", { method: "POST", body: fd });
-      const data = await res.json();
-
-      typingRow.remove();
-
-      /*
-        data.response = answer string  (both old and new app.py)
-        data.image    = image object or null  (only new app.py with image_helper)
-      */
-      appendBot(data.response, data.image || null);
-
-    } catch (err) {
-      typingRow.remove();
-      appendBot(
-        "❌ Server se connect nahi ho saka. Flask app chal raha hai? Dobara try karo.",
-        null
-      );
-    }
-
-    sendBtn.disabled = false;
-    chatBox.scrollTop = chatBox.scrollHeight;
-  }
-</script>
-
-</body>
+        sendBtn.disabled = false;
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }
+    </script>
+  </body>
 </html>
