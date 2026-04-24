@@ -1,4 +1,5 @@
-# app.py — MediBot: Groq + RAG + Medical Image + MongoDB
+# app.py — MediBot: Groq + RAG + Medical Image + MongoDB + JWT Auth
+from src.auth_routes import auth_bp
 from src.image_helper import get_medical_image
 from src.helper import download_hugging_face_embeddings
 from langchain_groq import ChatGroq
@@ -7,18 +8,22 @@ from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
 from langchain_pinecone import PineconeVectorStore
 from pinecone import Pinecone
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, redirect, url_for
+from flask_jwt_extended import (
+    JWTManager, jwt_required, get_jwt_identity,
+    get_jwt, verify_jwt_in_request
+)
 from dotenv import load_dotenv
 import os
 import certifi
+from datetime import timedelta
 
 os.environ["SSL_CERT_FILE"] = certifi.where()
 os.environ["REQUESTS_CA_BUNDLE"] = certifi.where()
 
 load_dotenv()
 
-
-# ── MongoDB optional — crash nahi hoga agar MongoDB nahi hai ──
+# ── MongoDB optional ──────────────────────────────────────────
 try:
     from src.database import (
         save_search_log, get_search_logs, get_search_stats, delete_all_logs,
@@ -32,7 +37,26 @@ except Exception as mongo_err:
     print(
         f"⚠️  MongoDB nahi mila — chatbot bina MongoDB ke bhi chalega!\n   Error: {mongo_err}")
 
+# ── Auth Models ───────────────────────────────────────────────
+try:
+    from src.auth_models import save_chat_message, get_user_chat_history
+    AUTH_DB_AVAILABLE = True
+    print("✅ Auth DB ready!")
+except Exception as auth_err:
+    AUTH_DB_AVAILABLE = False
+    print(f"⚠️  Auth DB error: {auth_err}")
+
 app = Flask(__name__)
+
+# ── JWT Config ────────────────────────────────────────────────
+app.config["JWT_SECRET_KEY"] = os.environ.get(
+    "JWT_SECRET_KEY", "medibot-super-secret-key-change-in-production")
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(
+    days=7)   # 7 din valid rahega
+jwt = JWTManager(app)
+
+# ── Auth Blueprint ────────────────────────────────────────────
+app.register_blueprint(auth_bp)
 
 # ── Keys ─────────────────────────────────────────────────────
 PINECONE_API_KEY = os.environ.get("PINECONE_API_KEY")
@@ -50,7 +74,7 @@ retriever = docsearch.as_retriever(
     search_kwargs={"k": 3}
 )
 
-# ── Groq LLM ──────────────────────────────────────────────────
+# ── Groq LLM ─────────────────────────────────────────────────
 llm = ChatGroq(
     model="llama-3.1-8b-instant",
     api_key=GROQ_API_KEY,
@@ -58,8 +82,7 @@ llm = ChatGroq(
     max_tokens=800
 )
 
-# ── System Prompt — Hindi + English dono support ─────────────
-# SABSE IMPORTANT FIX: Hindi mein pooche to Hindi mein jawab
+# ── System Prompt ─────────────────────────────────────────────
 system_prompt = """You are MediBot — an expert AI Medical Assistant.
 
 STRICT LANGUAGE RULE (follow karna zaroori hai):
@@ -79,7 +102,7 @@ Instructions:
 
 prompt = ChatPromptTemplate.from_messages([
     ("system", system_prompt),
-    ("human", "{input}"),
+    ("human",  "{input}"),
 ])
 
 
@@ -95,6 +118,29 @@ rag_chain = (
 
 
 # ═══════════════════════════════════════════════════════════════
+#  HELPER — current user (optional JWT)
+# ═══════════════════════════════════════════════════════════════
+def get_current_user_optional():
+    """
+    JWT token hai to user info return karo, warna None.
+    Chatbot guests ke liye bhi kaam kare.
+    """
+    try:
+        verify_jwt_in_request(optional=True)
+        user_id = get_jwt_identity()
+        claims = get_jwt()
+        if user_id:
+            return {
+                "user_id":  user_id,
+                "username": claims.get("username", "Guest"),
+                "role":     claims.get("role",     "patient")
+            }
+    except Exception:
+        pass
+    return None
+
+
+# ═══════════════════════════════════════════════════════════════
 #  PAGES
 # ═══════════════════════════════════════════════════════════════
 
@@ -103,10 +149,26 @@ def index():
     return render_template("chat.html")
 
 
+@app.route("/login")
+def login_page():
+    return render_template("login.html")
+
+
+@app.route("/register")
+def register_page():
+    return render_template("register.html")
+
+
+@app.route("/profile")
+def profile_page():
+    return render_template("profile.html")
+
+
 @app.route("/medicines")
 def medicines_page():
     if not MONGO_AVAILABLE:
-        return """<div style='font-family:sans-serif;text-align:center;padding:40px;background:#070f18;color:#d6eeff;min-height:100vh'>
+        return """<div style='font-family:sans-serif;text-align:center;padding:40px;
+                  background:#070f18;color:#d6eeff;min-height:100vh'>
             <h2 style='color:#ff6b6b'>⚠️ MongoDB Connected Nahi Hai</h2>
             <p>Pehle MongoDB install karein ya Atlas connect karein</p>
             <a href='/' style='color:#00d9a0'>← Chatbot pe wapas jao</a></div>"""
@@ -116,7 +178,8 @@ def medicines_page():
 @app.route("/history")
 def history_page():
     if not MONGO_AVAILABLE:
-        return """<div style='font-family:sans-serif;text-align:center;padding:40px;background:#070f18;color:#d6eeff;min-height:100vh'>
+        return """<div style='font-family:sans-serif;text-align:center;padding:40px;
+                  background:#070f18;color:#d6eeff;min-height:100vh'>
             <h2 style='color:#ff6b6b'>⚠️ MongoDB Connected Nahi Hai</h2>
             <p>Pehle MongoDB install karein ya Atlas connect karein</p>
             <a href='/' style='color:#00d9a0'>← Chatbot pe wapas jao</a></div>"""
@@ -124,21 +187,22 @@ def history_page():
 
 
 # ═══════════════════════════════════════════════════════════════
-#  CHAT API
+#  CHAT API  (JWT optional — guests bhi use kar sakte hain)
 # ═══════════════════════════════════════════════════════════════
 
 @app.route("/get", methods=["POST"])
 def chat():
     try:
         msg = request.form["msg"]
+        user = get_current_user_optional()   # None if guest
 
-        # 1. RAG se AI answer — Hindi ya English mein
+        # 1. RAG answer
         response_text = rag_chain.invoke(msg)
 
-        # 2. Wikipedia/Unsplash image
+        # 2. Medical image
         image_data = get_medical_image(msg)
 
-        # 3. MongoDB se medicine match + log save (optional)
+        # 3. MongoDB medicine match + global log
         db_info = None
         if MONGO_AVAILABLE:
             try:
@@ -154,10 +218,24 @@ def chat():
             except Exception as db_err:
                 print(f"[DB Warning] {db_err}")
 
+        # 4. User ki personal chat history save karo (agar logged in hai)
+        if user and AUTH_DB_AVAILABLE:
+            try:
+                save_chat_message(
+                    user_id=user["user_id"],
+                    role=user["role"],
+                    message=msg,
+                    ai_response=str(response_text),
+                    image_data=image_data
+                )
+            except Exception as hist_err:
+                print(f"[History Warning] {hist_err}")
+
         return jsonify({
             "response": str(response_text),
             "image":    image_data,
-            "db_info":  db_info
+            "db_info":  db_info,
+            "user":     user["username"] if user else "Guest"
         })
 
     except Exception as e:
@@ -166,6 +244,21 @@ def chat():
             "image":    None,
             "db_info":  None
         }), 500
+
+
+# ═══════════════════════════════════════════════════════════════
+#  MY CHAT HISTORY (authenticated users only)
+# ═══════════════════════════════════════════════════════════════
+
+@app.route("/api/my-history", methods=["GET"])
+@jwt_required()
+def my_chat_history():
+    if not AUTH_DB_AVAILABLE:
+        return jsonify({"success": False, "error": "Auth DB nahi mila"}), 503
+    user_id = get_jwt_identity()
+    limit = int(request.args.get("limit", 50))
+    chats = get_user_chat_history(user_id, limit=limit)
+    return jsonify({"success": True, "count": len(chats), "data": chats})
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -200,7 +293,8 @@ def api_clear_logs():
         return jsonify({"success": False, "error": "MongoDB nahi mila"}), 503
     try:
         result = delete_all_logs()
-        return jsonify({"success": True, "message": f"{result['deleted']} logs delete ho gaye!"})
+        return jsonify({"success": True,
+                        "message": f"{result['deleted']} logs delete ho gaye!"})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
@@ -292,6 +386,7 @@ def health():
     status = {
         "status":   "healthy",
         "db":       "connected" if MONGO_AVAILABLE else "disconnected",
+        "auth_db":  "connected" if AUTH_DB_AVAILABLE else "disconnected",
         "pinecone": "connected",
         "groq":     "connected",
     }

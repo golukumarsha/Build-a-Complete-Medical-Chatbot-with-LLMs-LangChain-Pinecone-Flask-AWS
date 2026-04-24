@@ -27,16 +27,9 @@
         --radius-sm: 10px;
       }
 
-      *,
-      *::before,
-      *::after {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-      }
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-      html,
-      body {
+      html, body {
         height: 100%;
         background: var(--bg);
         color: var(--text);
@@ -80,43 +73,32 @@
         flex-shrink: 0;
       }
       .logo {
-        width: 42px;
-        height: 42px;
+        width: 42px; height: 42px;
         border-radius: 12px;
         background: linear-gradient(135deg, #00c896 0%, #3b9eff 100%);
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        display: flex; align-items: center; justify-content: center;
         font-size: 20px;
         box-shadow: 0 0 20px var(--accent-glow);
         flex-shrink: 0;
       }
       .header-text h1 {
         font-family: "Playfair Display", serif;
-        font-size: 1.2rem;
-        color: #fff;
+        font-size: 1.2rem; color: #fff;
       }
-      .header-text h1 span {
-        color: var(--accent);
-      }
+      .header-text h1 span { color: var(--accent); }
       .header-text p {
-        font-size: 0.68rem;
-        color: var(--muted);
-        margin-top: 1px;
-        letter-spacing: 0.05em;
-        text-transform: uppercase;
+        font-size: 0.68rem; color: var(--muted);
+        margin-top: 1px; letter-spacing: 0.05em; text-transform: uppercase;
       }
 
       .nav-area {
         margin-left: auto;
-        display: flex;
-        align-items: center;
-        gap: 8px;
+        display: flex; align-items: center; gap: 8px;
       }
+
+      /* ── Nav Buttons ── */
       .nav-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
+        display: inline-flex; align-items: center; gap: 6px;
         background: var(--surface2);
         border: 1px solid var(--border);
         border-radius: 10px;
@@ -135,10 +117,113 @@
         background: var(--accent-dim);
       }
 
+      /* ── Auth Buttons ── */
+      .auth-login-btn {
+        display: inline-flex; align-items: center; gap: 6px;
+        background: var(--accent-dim);
+        border: 1px solid var(--accent);
+        border-radius: 10px;
+        padding: 7px 14px;
+        color: var(--accent);
+        font-size: 0.78rem;
+        text-decoration: none;
+        font-family: "Sora", sans-serif;
+        font-weight: 600;
+        transition: all 0.2s;
+        white-space: nowrap;
+      }
+      .auth-login-btn:hover {
+        background: var(--accent);
+        color: #000;
+      }
+
+      .auth-register-btn {
+        display: inline-flex; align-items: center; gap: 6px;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 7px 14px;
+        color: var(--muted);
+        font-size: 0.78rem;
+        text-decoration: none;
+        font-family: "Sora", sans-serif;
+        transition: all 0.2s;
+        white-space: nowrap;
+      }
+      .auth-register-btn:hover {
+        border-color: var(--blue);
+        color: var(--blue);
+        background: var(--blue-dim);
+      }
+
+      /* ── User Menu (logged in) ── */
+      #userMenu { position: relative; display: none; }
+
+      .user-menu-btn {
+        display: inline-flex; align-items: center; gap: 8px;
+        background: var(--accent-dim);
+        border: 1px solid var(--accent);
+        border-radius: 10px;
+        padding: 7px 14px;
+        color: var(--accent);
+        font-size: 0.78rem;
+        font-family: "Sora", sans-serif;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        white-space: nowrap;
+      }
+      .user-menu-btn:hover { background: var(--accent); color: #000; }
+
+      .role-badge {
+        font-size: 0.65rem;
+        padding: 2px 7px;
+        border-radius: 6px;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+      }
+      .role-badge.doctor  { background: rgba(59,158,255,.2); color: #3b9eff; border: 1px solid #3b9eff55; }
+      .role-badge.patient { background: rgba(0,200,150,.2);  color: #00c896; border: 1px solid #00c89655; }
+
+      #dropdownMenu {
+        display: none;
+        position: absolute; right: 0; top: 48px;
+        background: #0d1f33;
+        border: 1px solid rgba(0,200,150,.2);
+        border-radius: 14px;
+        padding: 8px;
+        min-width: 180px;
+        box-shadow: 0 12px 40px rgba(0,0,0,.5);
+        z-index: 999;
+        animation: dropIn .18s ease;
+      }
+      @keyframes dropIn {
+        from { opacity:0; transform:translateY(-6px); }
+        to   { opacity:1; transform:translateY(0); }
+      }
+      .drop-item {
+        display: block;
+        padding: 10px 14px;
+        color: var(--text);
+        text-decoration: none;
+        border-radius: 8px;
+        font-size: 0.82rem;
+        transition: background .15s;
+        cursor: pointer;
+        border: none;
+        background: none;
+        width: 100%;
+        text-align: left;
+        font-family: "Sora", sans-serif;
+      }
+      .drop-item:hover { background: rgba(255,255,255,.06); color: var(--accent); }
+      .drop-item.danger { color: var(--danger); }
+      .drop-item.danger:hover { background: var(--danger-dim); }
+      .drop-divider { border: none; border-top: 1px solid var(--border); margin: 6px 0; }
+
+      /* ── Status dot ── */
       .status-dot-wrap {
-        display: flex;
-        align-items: center;
-        gap: 7px;
+        display: flex; align-items: center; gap: 7px;
         background: var(--accent-dim);
         border: 1px solid var(--accent);
         border-radius: 20px;
@@ -148,483 +233,159 @@
         font-weight: 500;
       }
       .status-dot {
-        width: 7px;
-        height: 7px;
+        width: 7px; height: 7px;
         border-radius: 50%;
         background: var(--accent);
         box-shadow: 0 0 6px var(--accent);
         animation: blink 2s infinite;
       }
-      @keyframes blink {
-        0%,
-        100% {
-          opacity: 1;
-        }
-        50% {
-          opacity: 0.3;
-        }
-      }
+      @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
 
       /* ── CHAT ── */
       #chat-box {
-        flex: 1;
-        overflow-y: auto;
+        flex: 1; overflow-y: auto;
         padding: 28px 20px;
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
+        display: flex; flex-direction: column; gap: 20px;
         scroll-behavior: smooth;
       }
-      #chat-box::-webkit-scrollbar {
-        width: 3px;
-      }
-      #chat-box::-webkit-scrollbar-thumb {
-        background: var(--border);
-        border-radius: 3px;
-      }
+      #chat-box::-webkit-scrollbar { width: 3px; }
+      #chat-box::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
       /* ── WELCOME ── */
       #welcome {
-        margin: auto;
-        text-align: center;
-        max-width: 520px;
-        padding: 20px;
-        animation: fadeIn 0.6s ease;
+        margin: auto; text-align: center;
+        max-width: 520px; padding: 20px;
+        animation: fadeUp 0.6s ease;
       }
+      @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
       .welcome-icon {
-        font-size: 3.5rem;
-        margin-bottom: 16px;
+        font-size: 3.5rem; margin-bottom: 16px;
         display: block;
         animation: floatIcon 3s ease-in-out infinite;
       }
-      @keyframes floatIcon {
-        0%,
-        100% {
-          transform: translateY(0);
-        }
-        50% {
-          transform: translateY(-8px);
-        }
-      }
-      #welcome h2 {
-        font-family: "Playfair Display", serif;
-        font-size: 2rem;
-        color: #fff;
-        margin-bottom: 10px;
-      }
-      #welcome p {
-        color: var(--muted);
-        font-size: 0.9rem;
-        margin-bottom: 24px;
-      }
-      .chips {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 9px;
-      }
+      @keyframes floatIcon { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+      #welcome h2 { font-family:"Playfair Display",serif; font-size:2rem; color:#fff; margin-bottom:10px; }
+      #welcome p  { color:var(--muted); font-size:.9rem; margin-bottom:24px; }
+
+      .chips { display:flex; flex-wrap:wrap; justify-content:center; gap:9px; }
       .chip {
-        background: var(--surface2);
-        border: 1px solid var(--border);
-        border-radius: 24px;
-        padding: 7px 16px;
-        font-size: 0.8rem;
-        color: var(--muted);
-        cursor: pointer;
-        font-family: "Sora", sans-serif;
-        transition: all 0.2s;
+        background: var(--surface2); border:1px solid var(--border);
+        border-radius:24px; padding:7px 16px;
+        font-size:.8rem; color:var(--muted);
+        cursor:pointer; font-family:"Sora",sans-serif;
+        transition: all .2s;
       }
-      .chip:hover {
-        border-color: var(--accent);
-        color: var(--accent);
-        background: var(--accent-dim);
-        transform: translateY(-1px);
-      }
+      .chip:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-dim); transform:translateY(-1px); }
 
       /* ── MESSAGES ── */
-      .msg-row {
-        display: flex;
-        align-items: flex-end;
-        gap: 10px;
-        animation: slideUp 0.28s ease;
-      }
-      @keyframes slideUp {
-        from {
-          opacity: 0;
-          transform: translateY(12px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-      .msg-row.user {
-        flex-direction: row-reverse;
-      }
-      .av {
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        flex-shrink: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 17px;
-      }
-      .av.bot {
-        background: linear-gradient(135deg, #00c896, #3b9eff);
-      }
-      .av.user {
-        background: linear-gradient(135deg, #3b9eff, #9b6fff);
-      }
-      .bubble {
-        max-width: 68%;
-        padding: 13px 18px;
-        border-radius: var(--radius);
-        font-size: 0.9rem;
-        line-height: 1.7;
-      }
-      .bubble.bot {
-        background: var(--surface2);
-        border: 1px solid var(--border);
-        border-bottom-left-radius: 4px;
-        color: var(--text);
-      }
-      .bubble.user {
-        background: var(--blue-dim);
-        border: 1px solid var(--blue);
-        border-bottom-right-radius: 4px;
-        color: #c8e0ff;
-        text-align: right;
-      }
-      .ts {
-        text-align: center;
-        font-size: 0.68rem;
-        color: var(--muted);
-        margin-top: -10px;
-      }
+      .msg-row { display:flex; align-items:flex-end; gap:10px; animation:slideUp .28s ease; }
+      @keyframes slideUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+      .msg-row.user { flex-direction:row-reverse; }
+      .av { width:36px;height:36px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:17px; }
+      .av.bot  { background:linear-gradient(135deg,#00c896,#3b9eff); }
+      .av.user { background:linear-gradient(135deg,#3b9eff,#9b6fff); }
+      .bubble { max-width:68%; padding:13px 18px; border-radius:var(--radius); font-size:.9rem; line-height:1.7; }
+      .bubble.bot  { background:var(--surface2); border:1px solid var(--border); border-bottom-left-radius:4px; color:var(--text); }
+      .bubble.user { background:var(--blue-dim); border:1px solid var(--blue); border-bottom-right-radius:4px; color:#c8e0ff; text-align:right; }
+      .ts { text-align:center; font-size:.68rem; color:var(--muted); margin-top:-10px; }
 
       /* ── IMAGE CARD ── */
-      .img-card {
-        margin-top: 13px;
-        border-radius: var(--radius-sm);
-        overflow: hidden;
-        border: 1px solid var(--border);
-        background: var(--surface);
-        max-width: 300px;
-        transition:
-          transform 0.2s,
-          box-shadow 0.2s;
-        text-decoration: none;
-        display: block;
-      }
-      .img-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 8px 24px rgba(0, 200, 150, 0.15);
-        border-color: var(--accent);
-      }
-      .img-card img {
-        width: 100%;
-        height: 170px;
-        object-fit: cover;
-        display: block;
-        filter: saturate(0.9);
-      }
-      .img-info {
-        padding: 10px 13px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 10px;
-      }
-      .img-title {
-        font-size: 0.8rem;
-        color: var(--text);
-        font-weight: 600;
-      }
-      .img-sub {
-        font-size: 0.72rem;
-        color: var(--muted);
-        margin-top: 2px;
-      }
-      .wiki-badge {
-        font-size: 0.68rem;
-        background: var(--accent-dim);
-        border: 1px solid var(--accent);
-        color: var(--accent);
-        border-radius: 6px;
-        padding: 3px 8px;
-        flex-shrink: 0;
-      }
+      .img-card { margin-top:13px; border-radius:var(--radius-sm); overflow:hidden; border:1px solid var(--border); background:var(--surface); max-width:300px; transition:transform .2s,box-shadow .2s; text-decoration:none; display:block; }
+      .img-card:hover { transform:translateY(-3px); box-shadow:0 8px 24px rgba(0,200,150,.15); border-color:var(--accent); }
+      .img-card img { width:100%; height:170px; object-fit:cover; display:block; filter:saturate(.9); }
+      .img-info { padding:10px 13px; display:flex; justify-content:space-between; align-items:center; gap:10px; }
+      .img-title { font-size:.8rem; color:var(--text); font-weight:600; }
+      .img-sub   { font-size:.72rem; color:var(--muted); margin-top:2px; }
+      .wiki-badge { font-size:.68rem; background:var(--accent-dim); border:1px solid var(--accent); color:var(--accent); border-radius:6px; padding:3px 8px; flex-shrink:0; }
 
       /* ── TYPING ── */
-      .typing-dots {
-        display: flex;
-        gap: 5px;
-        padding: 4px 2px;
-      }
-      .typing-dots span {
-        width: 7px;
-        height: 7px;
-        border-radius: 50%;
-        background: var(--accent);
-        animation: dot 1.2s infinite;
-      }
-      .typing-dots span:nth-child(2) {
-        animation-delay: 0.2s;
-      }
-      .typing-dots span:nth-child(3) {
-        animation-delay: 0.4s;
-      }
-      @keyframes dot {
-        0%,
-        80%,
-        100% {
-          transform: scale(0.7);
-          opacity: 0.4;
-        }
-        40% {
-          transform: scale(1);
-          opacity: 1;
-        }
-      }
+      .typing-dots { display:flex; gap:5px; padding:4px 2px; }
+      .typing-dots span { width:7px;height:7px;border-radius:50%;background:var(--accent);animation:dot 1.2s infinite; }
+      .typing-dots span:nth-child(2){animation-delay:.2s}
+      .typing-dots span:nth-child(3){animation-delay:.4s}
+      @keyframes dot { 0%,80%,100%{transform:scale(.7);opacity:.4} 40%{transform:scale(1);opacity:1} }
 
       /* ── DISCLAIMER ── */
-      .disclaimer {
-        text-align: center;
-        font-size: 0.72rem;
-        color: var(--danger);
-        background: var(--danger-dim);
-        border-top: 1px solid var(--border);
-        padding: 9px 20px;
-        flex-shrink: 0;
-      }
+      .disclaimer { text-align:center; font-size:.72rem; color:var(--danger); background:var(--danger-dim); border-top:1px solid var(--border); padding:9px 20px; flex-shrink:0; }
 
       /* ── INPUT AREA ── */
-      #input-area {
-        padding: 14px 18px 16px;
-        background: var(--surface);
-        border-top: 1px solid var(--border);
-        flex-shrink: 0;
-      }
-      .input-box {
-        display: flex;
-        align-items: flex-end;
-        gap: 10px;
-        background: var(--surface2);
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        padding: 10px 14px;
-        transition: border-color 0.2s;
-      }
-      .input-box:focus-within {
-        border-color: var(--accent);
-      }
+      #input-area { padding:14px 18px 16px; background:var(--surface); border-top:1px solid var(--border); flex-shrink:0; }
+      .input-box { display:flex; align-items:flex-end; gap:10px; background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius); padding:10px 14px; transition:border-color .2s; }
+      .input-box:focus-within { border-color:var(--accent); }
+      textarea#msg { flex:1; background:none; border:none; outline:none; color:var(--text); font-family:"Sora",sans-serif; font-size:.9rem; resize:none; max-height:130px; padding:4px 0; line-height:1.55; }
+      textarea#msg::placeholder { color:var(--muted); }
 
-      textarea#msg {
-        flex: 1;
-        background: none;
-        border: none;
-        outline: none;
-        color: var(--text);
-        font-family: "Sora", sans-serif;
-        font-size: 0.9rem;
-        resize: none;
-        max-height: 130px;
-        padding: 4px 0;
-        line-height: 1.55;
-      }
-      textarea#msg::placeholder {
-        color: var(--muted);
-      }
+      #mic-btn { width:42px;height:42px;border-radius:12px;background:var(--surface);border:1px solid var(--border);color:var(--muted);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s; }
+      #mic-btn:hover { border-color:var(--blue); color:var(--blue); }
+      #mic-btn.listening { background:rgba(255,80,80,.15); border-color:#ff5555; color:#ff5555; animation:micPulse 1s ease-in-out infinite; }
+      @keyframes micPulse { 0%,100%{box-shadow:0 0 0 0 rgba(255,80,80,.4)} 50%{box-shadow:0 0 0 8px rgba(255,80,80,0)} }
 
-      /* ── MIC BUTTON ── */
-      #mic-btn {
-        width: 42px;
-        height: 42px;
-        border-radius: 12px;
-        background: var(--surface);
-        border: 1px solid var(--border);
-        color: var(--muted);
-        font-size: 18px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-        transition: all 0.2s;
-      }
-      #mic-btn:hover {
-        border-color: var(--blue);
-        color: var(--blue);
-      }
+      #send-btn { width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#3b9eff);border:none;color:#000;font-size:19px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .15s,opacity .2s;box-shadow:0 4px 14px var(--accent-glow); }
+      #send-btn:hover  { transform:scale(1.06); }
+      #send-btn:active { transform:scale(.94); }
+      #send-btn:disabled { opacity:.4; cursor:not-allowed; transform:none; }
 
-      /* Mic ACTIVE state — jab bola ja raha ho */
-      #mic-btn.listening {
-        background: rgba(255, 80, 80, 0.15);
-        border-color: #ff5555;
-        color: #ff5555;
-        animation: micPulse 1s ease-in-out infinite;
-      }
-      @keyframes micPulse {
-        0%,
-        100% {
-          box-shadow: 0 0 0 0 rgba(255, 80, 80, 0.4);
-        }
-        50% {
-          box-shadow: 0 0 0 8px rgba(255, 80, 80, 0);
-        }
-      }
+      #mic-status { display:none; align-items:center; gap:8px; margin-top:8px; padding:7px 14px; background:rgba(255,80,80,.08); border:1px solid rgba(255,80,80,.3); border-radius:10px; font-size:.75rem; color:#ff7070; animation:fadeIn .3s ease; }
+      #mic-status.show { display:flex; }
+      .mic-wave { display:flex; gap:3px; align-items:center; }
+      .mic-wave span { display:inline-block; width:3px; border-radius:2px; background:#ff5555; animation:wave 1s ease-in-out infinite; }
+      .mic-wave span:nth-child(1){height:8px;animation-delay:0s}
+      .mic-wave span:nth-child(2){height:14px;animation-delay:.15s}
+      .mic-wave span:nth-child(3){height:10px;animation-delay:.3s}
+      .mic-wave span:nth-child(4){height:16px;animation-delay:.1s}
+      .mic-wave span:nth-child(5){height:8px;animation-delay:.25s}
+      @keyframes wave { 0%,100%{transform:scaleY(.5);opacity:.5} 50%{transform:scaleY(1);opacity:1} }
 
-      /* ── SEND BUTTON ── */
-      #send-btn {
-        width: 42px;
-        height: 42px;
-        border-radius: 12px;
-        background: linear-gradient(135deg, var(--accent), #3b9eff);
-        border: none;
-        color: #000;
-        font-size: 19px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-        transition:
-          transform 0.15s,
-          opacity 0.2s;
-        box-shadow: 0 4px 14px var(--accent-glow);
-      }
-      #send-btn:hover {
-        transform: scale(1.06);
-      }
-      #send-btn:active {
-        transform: scale(0.94);
-      }
-      #send-btn:disabled {
-        opacity: 0.4;
-        cursor: not-allowed;
-        transform: none;
-      }
+      .hint { text-align:center; font-size:.7rem; color:var(--muted); margin-top:8px; }
 
-      /* ── MIC STATUS BAR ── */
-      #mic-status {
-        display: none;
-        align-items: center;
-        gap: 8px;
-        margin-top: 8px;
-        padding: 7px 14px;
-        background: rgba(255, 80, 80, 0.08);
-        border: 1px solid rgba(255, 80, 80, 0.3);
-        border-radius: 10px;
-        font-size: 0.75rem;
-        color: #ff7070;
-        animation: fadeIn 0.3s ease;
-      }
-      #mic-status.show {
-        display: flex;
-      }
-      .mic-wave {
-        display: flex;
-        gap: 3px;
-        align-items: center;
-      }
-      .mic-wave span {
-        display: inline-block;
-        width: 3px;
-        border-radius: 2px;
-        background: #ff5555;
-        animation: wave 1s ease-in-out infinite;
-      }
-      .mic-wave span:nth-child(1) {
-        height: 8px;
-        animation-delay: 0s;
-      }
-      .mic-wave span:nth-child(2) {
-        height: 14px;
-        animation-delay: 0.15s;
-      }
-      .mic-wave span:nth-child(3) {
-        height: 10px;
-        animation-delay: 0.3s;
-      }
-      .mic-wave span:nth-child(4) {
-        height: 16px;
-        animation-delay: 0.1s;
-      }
-      .mic-wave span:nth-child(5) {
-        height: 8px;
-        animation-delay: 0.25s;
-      }
-      @keyframes wave {
-        0%,
-        100% {
-          transform: scaleY(0.5);
-          opacity: 0.5;
-        }
-        50% {
-          transform: scaleY(1);
-          opacity: 1;
-        }
-      }
+      .toast { position:fixed; bottom:30px; left:50%; transform:translateX(-50%); background:#1e2d3d; border:1px solid var(--border); border-radius:10px; padding:10px 20px; font-size:.8rem; color:var(--text); z-index:999; animation:toastIn .3s ease; box-shadow:0 4px 20px rgba(0,0,0,.4); }
+      @keyframes toastIn { from{opacity:0;transform:translateX(-50%) translateY(8px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
 
-      .hint {
-        text-align: center;
-        font-size: 0.7rem;
-        color: var(--muted);
-        margin-top: 8px;
-      }
-
-      /* ── MIC NOT SUPPORTED TOAST ── */
-      .toast {
-        position: fixed;
-        bottom: 30px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: #1e2d3d;
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        padding: 10px 20px;
-        font-size: 0.8rem;
-        color: var(--text);
-        z-index: 999;
-        animation: fadeIn 0.3s ease;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-      }
-
-      @keyframes fadeIn {
-        from {
-          opacity: 0;
-          transform: translateX(-50%) translateY(8px);
-        }
-        to {
-          opacity: 1;
-          transform: translateX(-50%) translateY(0);
-        }
-      }
-
-      @media (max-width: 600px) {
-        .nav-btn span {
-          display: none;
-        }
-        header {
-          padding: 12px 14px;
-        }
+      @media (max-width:600px) {
+        .nav-btn span { display:none; }
+        header { padding:12px 14px; }
+        #auth-guest { gap:6px; }
       }
     </style>
   </head>
   <body>
     <div class="app">
-      <!-- HEADER -->
+
+      <!-- ════ HEADER ════ -->
       <header>
         <div class="logo">🩺</div>
         <div class="header-text">
           <h1>Medi<span>Bot</span></h1>
           <p>AI-Powered Medical Assistant</p>
         </div>
+
         <div class="nav-area">
-          <a href="/history" class="nav-btn">📋 <span>History</span></a>
+          <!-- Static nav links -->
+          <a href="/history"  class="nav-btn">🗂 <span>History</span></a>
           <a href="/medicines" class="nav-btn">💊 <span>Medicines</span></a>
+
+          <!-- GUEST: Login + Register buttons -->
+          <div id="auth-guest" style="display:flex; gap:8px; align-items:center;">
+            <a href="/login"    class="auth-login-btn">🔐 Login</a>
+            <a href="/register" class="auth-register-btn">✏️ Register</a>
+          </div>
+
+          <!-- LOGGED IN: User dropdown (JS se dikhega) -->
+          <div id="userMenu">
+            <button class="user-menu-btn" onclick="toggleDropdown()">
+              👤 <span id="userName">User</span>
+              <span id="roleBadge" class="role-badge patient">Patient</span>
+              ▾
+            </button>
+            <div id="dropdownMenu">
+              <a href="/profile" class="drop-item">👤 Mera Profile</a>
+              <a href="#" class="drop-item" onclick="goToMyHistory(event)">🗂 Meri Chat History</a>
+              <hr class="drop-divider">
+              <button class="drop-item danger" onclick="doLogout()">🚪 Logout</button>
+            </div>
+          </div>
+
+          <!-- Online status -->
           <div class="status-dot-wrap">
             <div class="status-dot"></div>
             Online
@@ -632,352 +393,241 @@
         </div>
       </header>
 
-      <!-- CHAT BOX -->
+      <!-- ════ CHAT BOX ════ -->
       <div id="chat-box">
         <div id="welcome">
           <span class="welcome-icon">🏥</span>
           <h2>Medical AI Assistant</h2>
           <p>
-            Apna medical question poochhe — Hindi, Hinglish ya English mein.<br />Type
-            karo ya 🎤 <strong>mic</strong> se bolo!
+            Apna medical question poochhe — Hindi, Hinglish ya English mein.<br />
+            Type karo ya 🎤 <strong>mic</strong> se bolo!
           </p>
           <div class="chips">
             <div class="chip" onclick="quickAsk(this)">What is diabetes?</div>
-            <div class="chip" onclick="quickAsk(this)">
-              Heart anatomy explain karo
-            </div>
+            <div class="chip" onclick="quickAsk(this)">Heart anatomy explain karo</div>
             <div class="chip" onclick="quickAsk(this)">Asthma symptoms</div>
-            <div class="chip" onclick="quickAsk(this)">
-              How does the brain work?
-            </div>
-            <div class="chip" onclick="quickAsk(this)">
-              बुखार में क्या करें?
-            </div>
-            <div class="chip" onclick="quickAsk(this)">
-              What causes hypertension?
-            </div>
-            <div class="chip" onclick="quickAsk(this)">
-              sir dard ki dawa batao
-            </div>
-            <div class="chip" onclick="quickAsk(this)">
-              Lung function kaise hoti hai?
-            </div>
+            <div class="chip" onclick="quickAsk(this)">How does the brain work?</div>
+            <div class="chip" onclick="quickAsk(this)">बुखार में क्या करें?</div>
+            <div class="chip" onclick="quickAsk(this)">What causes hypertension?</div>
+            <div class="chip" onclick="quickAsk(this)">sir dard ki dawa batao</div>
+            <div class="chip" onclick="quickAsk(this)">Lung function kaise hoti hai?</div>
           </div>
         </div>
       </div>
 
       <!-- DISCLAIMER -->
       <div class="disclaimer">
-        ⚠️ Yeh sirf educational information hai — professional medical advice ke
-        liye doctor se milein.
+        ⚠️ Yeh sirf educational information hai — professional medical advice ke liye doctor se milein.
       </div>
 
-      <!-- INPUT AREA -->
+      <!-- ════ INPUT AREA ════ -->
       <div id="input-area">
         <div class="input-box">
-          <textarea
-            id="msg"
-            rows="1"
-            placeholder="Type karo ya mic se bolo... (Hindi / Hinglish / English)"
-          ></textarea>
-
-          <!-- MIC BUTTON -->
-          <button id="mic-btn" onclick="toggleMic()" title="Mic se bolo">
-            🎤
-          </button>
-
-          <!-- SEND BUTTON -->
-          <button id="send-btn" onclick="sendMsg()" title="Send">
-            &#10148;
-          </button>
+          <textarea id="msg" rows="1" placeholder="Type karo ya mic se bolo... (Hindi / Hinglish / English)"></textarea>
+          <button id="mic-btn"  onclick="toggleMic()"  title="Mic se bolo">🎤</button>
+          <button id="send-btn" onclick="sendMsg()"     title="Send">&#10148;</button>
         </div>
 
-        <!-- MIC STATUS BAR -->
         <div id="mic-status">
           <div class="mic-wave">
             <span></span><span></span><span></span><span></span><span></span>
           </div>
           <span id="mic-status-text">Sun raha hoon... bolo</span>
-          <span
-            style="margin-left: auto; cursor: pointer; color: #ff5555"
-            onclick="stopMic()"
-            >✕ Band karo</span
-          >
+          <span style="margin-left:auto;cursor:pointer;color:#ff5555" onclick="stopMic()">✕ Band karo</span>
         </div>
 
-        <div class="hint">
-          Enter = Send &nbsp;|&nbsp; Shift+Enter = Naya line &nbsp;|&nbsp; 🎤 =
-          Bolke poochho
-        </div>
+        <div class="hint">Enter = Send &nbsp;|&nbsp; Shift+Enter = Naya line &nbsp;|&nbsp; 🎤 = Bolke poochho</div>
       </div>
     </div>
 
+    <!-- ════════════════════════════════════════════════
+         JAVASCRIPT
+    ════════════════════════════════════════════════ -->
     <script>
-      const chatBox = document.getElementById("chat-box");
-      const msgInput = document.getElementById("msg");
-      const sendBtn = document.getElementById("send-btn");
-      const micBtn = document.getElementById("mic-btn");
-      const micStatus = document.getElementById("mic-status");
-      const micStatusText = document.getElementById("mic-status-text");
+    /* ══════════════════════════════════════════
+       AUTH — navbar ko update karo
+    ══════════════════════════════════════════ */
+    (function initAuth() {
+      const token = localStorage.getItem("medibot_token");
+      const user  = JSON.parse(localStorage.getItem("medibot_user") || "null");
 
-      /* ── Auto-resize textarea ── */
-      msgInput.addEventListener("input", () => {
-        msgInput.style.height = "auto";
-        msgInput.style.height = Math.min(msgInput.scrollHeight, 130) + "px";
-      });
+      if (token && user) {
+        // Logged in → guest buttons hide, userMenu dikhao
+        document.getElementById("auth-guest").style.display = "none";
+        document.getElementById("userMenu").style.display   = "block";
 
-      /* ── Enter = send ── */
-      msgInput.addEventListener("keydown", (e) => {
-        if (e.key === "Enter" && !e.shiftKey) {
-          e.preventDefault();
-          sendMsg();
-        }
-      });
+        // Name set karo
+        const nameEl = document.getElementById("userName");
+        nameEl.textContent = user.role === "doctor"
+          ? "Dr. " + user.username
+          : user.username;
 
-      function quickAsk(el) {
-        msgInput.value = el.textContent.trim();
-        sendMsg();
-      }
-
-      /* ════════════════════════════════════
-     🎤 MIC / SPEECH RECOGNITION
-  ════════════════════════════════════ */
-      let recognition = null;
-      let isListening = false;
-
-      function setupMic() {
-        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SR) return null;
-
-        const r = new SR();
-        r.continuous = false; // ek baar bolo, ruk jao
-        r.interimResults = true; // bolte bolte text dikhe
-        r.maxAlternatives = 1;
-
-        // Hindi + English + Hinglish — in order of preference
-        r.lang = "hi-IN";
-
-        r.onstart = () => {
-          isListening = true;
-          micBtn.classList.add("listening");
-          micBtn.textContent = "🔴";
-          micStatus.classList.add("show");
-          micStatusText.textContent = "Sun raha hoon... bolo";
-        };
-
-        r.onresult = (e) => {
-          let interim = "";
-          let final = "";
-          for (let i = e.resultIndex; i < e.results.length; i++) {
-            if (e.results[i].isFinal) {
-              final += e.results[i][0].transcript;
-            } else {
-              interim += e.results[i][0].transcript;
-            }
-          }
-          // Bolte waqt textarea mein dikhao
-          msgInput.value = final || interim;
-          msgInput.style.height = "auto";
-          msgInput.style.height = Math.min(msgInput.scrollHeight, 130) + "px";
-
-          if (final) {
-            micStatusText.textContent = "✅ Suna! Bhej raha hoon...";
-            setTimeout(() => {
-              stopMic();
-              if (msgInput.value.trim()) sendMsg();
-            }, 600);
-          }
-        };
-
-        r.onerror = (e) => {
-          console.error("Mic error:", e.error);
-          let msg = "Kuch problem aayi";
-          if (e.error === "not-allowed")
-            msg = "❌ Mic permission nahi mili — browser mein allow karo";
-          if (e.error === "no-speech")
-            msg = "🔇 Koi awaaz nahi aayi — dobara try karo";
-          if (e.error === "network") msg = "❌ Network error";
-          micStatusText.textContent = msg;
-          setTimeout(stopMic, 2000);
-        };
-
-        r.onend = () => {
-          stopMic();
-        };
-
-        return r;
-      }
-
-      function toggleMic() {
-        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SR) {
-          showToast(
-            "❌ Aapka browser mic support nahi karta. Chrome use karo.",
-          );
-          return;
-        }
-        if (isListening) {
-          stopMic();
+        // Role badge
+        const badge = document.getElementById("roleBadge");
+        if (user.role === "doctor") {
+          badge.textContent = "Doctor";
+          badge.className   = "role-badge doctor";
         } else {
-          startMic();
+          badge.textContent = "Patient";
+          badge.className   = "role-badge patient";
         }
       }
+      // Guest → already visible by default
+    })();
 
-      function startMic() {
-        recognition = setupMic();
-        if (!recognition) {
-          showToast("❌ Mic support nahi hai. Chrome use karo.");
-          return;
+    /* Dropdown toggle */
+    function toggleDropdown() {
+      const menu = document.getElementById("dropdownMenu");
+      menu.style.display = menu.style.display === "block" ? "none" : "block";
+    }
+
+    /* Bahar click karo to close */
+    document.addEventListener("click", function(e) {
+      const um = document.getElementById("userMenu");
+      if (um && !um.contains(e.target)) {
+        document.getElementById("dropdownMenu").style.display = "none";
+      }
+    });
+
+    /* Meri Chat History */
+    function goToMyHistory(e) {
+      e.preventDefault();
+      document.getElementById("dropdownMenu").style.display = "none";
+      window.location.href = "/profile";
+    }
+
+    /* Logout */
+    function doLogout() {
+      const token = localStorage.getItem("medibot_token");
+      fetch("/auth/logout", {
+        method:  "POST",
+        headers: { "Authorization": "Bearer " + token }
+      }).finally(() => {
+        localStorage.removeItem("medibot_token");
+        localStorage.removeItem("medibot_user");
+        window.location.href = "/login";
+      });
+    }
+
+    /* ══════════════════════════════════════════
+       CHAT
+    ══════════════════════════════════════════ */
+    const chatBox       = document.getElementById("chat-box");
+    const msgInput      = document.getElementById("msg");
+    const sendBtn       = document.getElementById("send-btn");
+    const micBtn        = document.getElementById("mic-btn");
+    const micStatus     = document.getElementById("mic-status");
+    const micStatusText = document.getElementById("mic-status-text");
+
+    msgInput.addEventListener("input", () => {
+      msgInput.style.height = "auto";
+      msgInput.style.height = Math.min(msgInput.scrollHeight, 130) + "px";
+    });
+
+    msgInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+    });
+
+    function quickAsk(el) {
+      msgInput.value = el.textContent.trim();
+      sendMsg();
+    }
+
+    /* ── MIC ── */
+    let recognition = null, isListening = false;
+
+    function setupMic() {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) return null;
+      const r = new SR();
+      r.continuous = false; r.interimResults = true; r.maxAlternatives = 1; r.lang = "hi-IN";
+      r.onstart  = () => { isListening=true; micBtn.classList.add("listening"); micBtn.textContent="🔴"; micStatus.classList.add("show"); micStatusText.textContent="Sun raha hoon... bolo"; };
+      r.onresult = (e) => {
+        let interim="", final="";
+        for (let i=e.resultIndex; i<e.results.length; i++) {
+          if (e.results[i].isFinal) final += e.results[i][0].transcript;
+          else interim += e.results[i][0].transcript;
         }
-        try {
-          recognition.start();
-        } catch (e) {
-          console.error(e);
-        }
+        msgInput.value = final || interim;
+        msgInput.style.height="auto"; msgInput.style.height=Math.min(msgInput.scrollHeight,130)+"px";
+        if (final) { micStatusText.textContent="✅ Suna! Bhej raha hoon..."; setTimeout(()=>{ stopMic(); if(msgInput.value.trim()) sendMsg(); },600); }
+      };
+      r.onerror = (e) => {
+        let msg="Kuch problem aayi";
+        if(e.error==="not-allowed") msg="❌ Mic permission nahi mili";
+        if(e.error==="no-speech")   msg="🔇 Koi awaaz nahi aayi";
+        micStatusText.textContent=msg; setTimeout(stopMic,2000);
+      };
+      r.onend = () => stopMic();
+      return r;
+    }
+
+    function toggleMic() {
+      if(!(window.SpeechRecognition||window.webkitSpeechRecognition)){ showToast("❌ Chrome use karo — mic support nahi hai"); return; }
+      isListening ? stopMic() : startMic();
+    }
+    function startMic() { recognition=setupMic(); if(recognition) try{ recognition.start(); }catch(e){} }
+    function stopMic()  { isListening=false; micBtn.classList.remove("listening"); micBtn.textContent="🎤"; micStatus.classList.remove("show"); if(recognition){ try{recognition.stop();}catch(e){} recognition=null; } }
+
+    function showToast(msg) {
+      const t=document.createElement("div"); t.className="toast"; t.textContent=msg;
+      document.body.appendChild(t); setTimeout(()=>t.remove(),3500);
+    }
+
+    /* ── Render ── */
+    function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\n/g,"<br>"); }
+    function renderMarkdown(s){
+      return String(s)
+        .replace(/\*\*(.*?)\*\*/g,"<strong>$1</strong>")
+        .replace(/__(.*?)__/g,"<strong>$1</strong>")
+        .replace(/\*(.*?)\*/g,"<em>$1</em>")
+        .replace(/^\d+\.\s+(.+)$/gm,"<li>$1</li>")
+        .replace(/^[-•]\s+(.+)$/gm,"<li>$1</li>")
+        .replace(/(<li>.*<\/li>)/gs,"<ul style='padding-left:18px;margin:6px 0'>$1</ul>")
+        .replace(/\n/g,"<br>");
+    }
+    function timeNow(){ return new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"}); }
+    function append(html){ const t=document.createElement("div"); t.innerHTML=html.trim(); const el=t.firstElementChild; chatBox.appendChild(el); chatBox.scrollTop=chatBox.scrollHeight; return el; }
+
+    function appendUser(text){ append(`<div class="msg-row user"><div class="av user">👤</div><div class="bubble user">${esc(text)}</div></div>`); append(`<div class="ts">${timeNow()}</div>`); }
+    function appendTyping(){ return append(`<div class="msg-row" id="typing-row"><div class="av bot">🤖</div><div class="bubble bot"><div class="typing-dots"><span></span><span></span><span></span></div></div></div>`); }
+    function appendBot(text,image){
+      let imgHtml="";
+      if(image&&image.image_url){
+        const wikiHref=image.wiki_url||"#";
+        const imgTitle=image.medicine_name||image.wiki_title||"Medical Info";
+        const imgDesc=image.description||"";
+        imgHtml=`<a class="img-card" href="${wikiHref}" target="_blank" rel="noopener noreferrer"><img src="${image.image_url}" alt="${imgTitle}" loading="lazy" onerror="this.closest('.img-card').remove()"/><div class="img-info"><div><div class="img-title">${imgTitle}</div><div class="img-sub">${imgDesc}</div></div><div class="wiki-badge">Wikipedia ↗</div></div></a>`;
       }
+      append(`<div class="msg-row"><div class="av bot">🤖</div><div class="bubble bot">${renderMarkdown(text)}${imgHtml}</div></div>`);
+      append(`<div class="ts">${timeNow()}</div>`);
+    }
 
-      function stopMic() {
-        isListening = false;
-        micBtn.classList.remove("listening");
-        micBtn.textContent = "🎤";
-        micStatus.classList.remove("show");
-        if (recognition) {
-          try {
-            recognition.stop();
-          } catch (e) {}
-          recognition = null;
-        }
+    /* ── Send ── */
+    async function sendMsg(){
+      const text=msgInput.value.trim(); if(!text) return;
+      const welcome=document.getElementById("welcome"); if(welcome) welcome.remove();
+      appendUser(text);
+      msgInput.value=""; msgInput.style.height="auto"; sendBtn.disabled=true;
+      const typingRow=appendTyping();
+      try{
+        const fd=new FormData(); fd.append("msg",text);
+
+        // JWT token hai to Authorization header bhejo
+        const token=localStorage.getItem("medibot_token");
+        const headers={};
+        if(token) headers["Authorization"]="Bearer "+token;
+
+        const res=await fetch("/get",{method:"POST",body:fd,headers});
+        const data=await res.json();
+        typingRow.remove();
+        appendBot(data.response, data.image||null);
+      }catch(err){
+        typingRow.remove();
+        appendBot("❌ Server se connect nahi ho saka. Flask app chal raha hai? Dobara try karo.",null);
       }
-
-      /* ── Toast notification ── */
-      function showToast(msg) {
-        const t = document.createElement("div");
-        t.className = "toast";
-        t.textContent = msg;
-        document.body.appendChild(t);
-        setTimeout(() => t.remove(), 3500);
-      }
-
-      /* ════════════════════════════════════
-     CHAT FUNCTIONS
-  ════════════════════════════════════ */
-      function esc(s) {
-        return String(s)
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;")
-          .replace(/\n/g, "<br>");
-      }
-
-      function renderMarkdown(s) {
-        return String(s)
-          .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-          .replace(/__(.*?)__/g, "<strong>$1</strong>")
-          .replace(/\*(.*?)\*/g, "<em>$1</em>")
-          .replace(/^\d+\.\s+(.+)$/gm, "<li>$1</li>")
-          .replace(/^[-•]\s+(.+)$/gm, "<li>$1</li>")
-          .replace(
-            /(<li>.*<\/li>)/gs,
-            "<ul style='padding-left:18px;margin:6px 0'>$1</ul>",
-          )
-          .replace(/\n/g, "<br>");
-      }
-
-      function timeNow() {
-        return new Date().toLocaleTimeString("en-IN", {
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-      }
-
-      function append(html) {
-        const tmp = document.createElement("div");
-        tmp.innerHTML = html.trim();
-        const el = tmp.firstElementChild;
-        chatBox.appendChild(el);
-        chatBox.scrollTop = chatBox.scrollHeight;
-        return el;
-      }
-
-      function appendUser(text) {
-        append(`<div class="msg-row user">
-      <div class="av user">👤</div>
-      <div class="bubble user">${esc(text)}</div>
-    </div>`);
-        append(`<div class="ts">${timeNow()}</div>`);
-      }
-
-      function appendTyping() {
-        return append(`<div class="msg-row" id="typing-row">
-      <div class="av bot">🤖</div>
-      <div class="bubble bot">
-        <div class="typing-dots"><span></span><span></span><span></span></div>
-      </div>
-    </div>`);
-      }
-
-      function appendBot(text, image) {
-        let imgHtml = "";
-        if (image && image.image_url) {
-          const wikiHref = image.wiki_url || "#";
-          const imgTitle =
-            image.medicine_name || image.wiki_title || "Medical Info";
-          const imgDesc = image.description || "";
-          imgHtml = `
-        <a class="img-card" href="${wikiHref}" target="_blank" rel="noopener noreferrer">
-          <img src="${image.image_url}" alt="${imgTitle}" loading="lazy"
-               onerror="this.closest('.img-card').remove()"/>
-          <div class="img-info">
-            <div>
-              <div class="img-title">${imgTitle}</div>
-              <div class="img-sub">${imgDesc}</div>
-            </div>
-            <div class="wiki-badge">Wikipedia ↗</div>
-          </div>
-        </a>`;
-        }
-        append(`<div class="msg-row">
-      <div class="av bot">🤖</div>
-      <div class="bubble bot">
-        ${renderMarkdown(text)}
-        ${imgHtml}
-      </div>
-    </div>`);
-        append(`<div class="ts">${timeNow()}</div>`);
-      }
-
-      async function sendMsg() {
-        const text = msgInput.value.trim();
-        if (!text) return;
-
-        const welcome = document.getElementById("welcome");
-        if (welcome) welcome.remove();
-
-        appendUser(text);
-        msgInput.value = "";
-        msgInput.style.height = "auto";
-        sendBtn.disabled = true;
-
-        const typingRow = appendTyping();
-
-        try {
-          const fd = new FormData();
-          fd.append("msg", text);
-          const res = await fetch("/get", { method: "POST", body: fd });
-          const data = await res.json();
-          typingRow.remove();
-          appendBot(data.response, data.image || null);
-        } catch (err) {
-          typingRow.remove();
-          appendBot(
-            "❌ Server se connect nahi ho saka. Flask app chal raha hai? Dobara try karo.",
-            null,
-          );
-        }
-
-        sendBtn.disabled = false;
-        chatBox.scrollTop = chatBox.scrollHeight;
-      }
+      sendBtn.disabled=false; chatBox.scrollTop=chatBox.scrollHeight;
+    }
     </script>
   </body>
 </html>

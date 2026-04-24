@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MediBot — Login</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #070f18;
+      color: #d6eeff;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ── Animated background ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background:
+        radial-gradient(ellipse at 20% 50%, rgba(0,217,160,.08) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 20%, rgba(0,150,255,.08) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .card {
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(0,217,160,.2);
+      border-radius: 20px;
+      padding: 48px 40px;
+      width: 100%;
+      max-width: 420px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 0 60px rgba(0,217,160,.08);
+    }
+
+    .logo {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .logo .icon {
+      font-size: 48px;
+      display: block;
+      margin-bottom: 8px;
+    }
+    .logo h1 {
+      font-size: 28px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #00d9a0, #0096ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .logo p {
+      color: #7a9bbf;
+      font-size: 14px;
+      margin-top: 4px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      color: #7a9bbf;
+      margin-bottom: 6px;
+      font-weight: 500;
+      letter-spacing: .3px;
+    }
+    input {
+      width: 100%;
+      padding: 13px 16px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(0,217,160,.2);
+      border-radius: 10px;
+      color: #d6eeff;
+      font-size: 15px;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    input:focus {
+      border-color: #00d9a0;
+      box-shadow: 0 0 0 3px rgba(0,217,160,.15);
+    }
+    input::placeholder { color: #3a5a7a; }
+
+    .btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #00d9a0, #0096ff);
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .2s, transform .1s;
+      margin-top: 8px;
+    }
+    .btn:hover   { opacity: .9; }
+    .btn:active  { transform: scale(.98); }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+    .divider {
+      text-align: center;
+      margin: 24px 0 20px;
+      position: relative;
+      color: #3a5a7a;
+      font-size: 13px;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      width: 42%;
+      height: 1px;
+      background: rgba(0,217,160,.15);
+    }
+    .divider::before { left: 0; }
+    .divider::after  { right: 0; }
+
+    .register-link {
+      text-align: center;
+      font-size: 14px;
+      color: #7a9bbf;
+    }
+    .register-link a {
+      color: #00d9a0;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .register-link a:hover { text-decoration: underline; }
+
+    /* ── Alert ── */
+    .alert {
+      display: none;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      margin-bottom: 20px;
+      animation: slideDown .25s ease;
+    }
+    .alert.error   { background: rgba(255,80,80,.12); border: 1px solid rgba(255,80,80,.3); color: #ff8080; }
+    .alert.success { background: rgba(0,217,160,.12); border: 1px solid rgba(0,217,160,.3); color: #00d9a0; }
+    @keyframes slideDown { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
+
+    /* ── Spinner ── */
+    .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .back-link {
+      text-align: center;
+      margin-top: 20px;
+    }
+    .back-link a {
+      color: #3a5a7a;
+      text-decoration: none;
+      font-size: 13px;
+    }
+    .back-link a:hover { color: #00d9a0; }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <div class="logo">
+    <span class="icon">🏥</span>
+    <h1>MediBot</h1>
+    <p>Apne account mein login karo</p>
+  </div>
+
+  <div class="alert" id="alert"></div>
+
+  <!-- EMAIL -->
+  <div class="form-group">
+    <label for="email">📧 Email</label>
+    <input type="email" id="email" placeholder="aapka@email.com" autocomplete="email" />
+  </div>
+
+  <!-- PASSWORD -->
+  <div class="form-group">
+    <label for="password">🔒 Password</label>
+    <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" />
+  </div>
+
+  <button class="btn" id="loginBtn" onclick="doLogin()">Login karo</button>
+
+  <div class="divider">ya</div>
+
+  <div class="register-link">
+    Naya account? <a href="/register">Register karo →</a>
+  </div>
+
+  <div class="back-link">
+    <a href="/">← Chatbot pe jao (bina login)</a>
+  </div>
+</div>
+
+<script>
+  // Agar already logged in hai to redirect karo
+  if (localStorage.getItem("medibot_token")) {
+    window.location.href = "/";
+  }
+
+  function showAlert(msg, type = "error") {
+    const el = document.getElementById("alert");
+    el.textContent = msg;
+    el.className   = `alert ${type}`;
+    el.style.display = "block";
+  }
+
+  async function doLogin() {
+    const email    = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
+    const btn      = document.getElementById("loginBtn");
+
+    if (!email || !password) {
+      showAlert("Email aur password dono daalo !");
+      return;
+    }
+
+    btn.disabled   = true;
+    btn.innerHTML  = '<span class="spinner"></span>Login ho raha hai...';
+
+    try {
+      const res  = await fetch("/auth/login", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        // Token aur user info save karo
+        localStorage.setItem("medibot_token", data.token);
+        localStorage.setItem("medibot_user",  JSON.stringify(data.user));
+        showAlert(`✅ Welcome back, ${data.user.username}!`, "success");
+        setTimeout(() => window.location.href = "/", 1000);
+      } else {
+        showAlert(data.error || "Login fail ho gaya");
+        btn.disabled  = false;
+        btn.innerHTML = "Login karo";
+      }
+    } catch (err) {
+      showAlert("Server se connect nahi hua. Dobara try karo.");
+      btn.disabled  = false;
+      btn.innerHTML = "Login karo";
+    }
+  }
+
+  // Enter key support
+  document.addEventListener("keydown", e => {
+    if (e.key === "Enter") doLogin();
+  });
+</script>
+
+</body>
+</html>
