@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MediBot — Medical Report Analyzer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg: #080e14; --surface: #0f1923; --surface2: #162030;
+      --border: #1e3048; --accent: #00c896; --accent-dim: #00c89622;
+      --blue: #3b9eff; --blue-dim: #3b9eff18;
+      --purple: #9b6fff; --purple-dim: #9b6fff18;
+      --text: #d8eaf8; --muted: #5a7a99;
+      --danger: #ff5c5c; --danger-dim: #ff5c5c18;
+      --warn: #ffa500; --warn-dim: #ffa50018;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { min-height: 100vh; background: var(--bg); color: var(--text); font-family: "Sora", sans-serif; font-size: 15px; line-height: 1.6; }
+
+    body::before {
+      content: ""; position: fixed; inset: 0;
+      background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 48px 48px; opacity: 0.14; pointer-events: none;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(8,14,20,.92); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 13px 28px; display: flex; align-items: center; gap: 12px;
+    }
+    .nav-logo { font-family: "Playfair Display", serif; font-size: 20px; color: #fff; text-decoration: none; }
+    .nav-logo span { color: var(--accent); }
+    .nav-links { display: flex; gap: 6px; margin-left: auto; flex-wrap: wrap; }
+    .nav-link {
+      padding: 7px 13px; border-radius: 8px; color: var(--muted);
+      text-decoration: none; font-size: 13px; transition: all .2s;
+      border: 1px solid transparent;
+    }
+    .nav-link:hover { color: var(--text); background: var(--surface2); border-color: var(--border); }
+    .nav-link.active { color: var(--accent); background: var(--accent-dim); border-color: rgba(0,200,150,.3); }
+
+    /* ── PAGE ── */
+    .page { position: relative; z-index: 1; max-width: 920px; margin: 0 auto; padding: 36px 20px 70px; }
+
+    /* ── PAGE HEADER ── */
+    .page-header { text-align: center; margin-bottom: 40px; }
+    .header-icon {
+      width: 80px; height: 80px; border-radius: 24px;
+      background: linear-gradient(135deg, #3b9eff, #9b6fff);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 36px; margin: 0 auto 18px;
+      box-shadow: 0 0 48px rgba(59,158,255,.3);
+      animation: pulseGlow 3s ease-in-out infinite;
+    }
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 48px rgba(59,158,255,.3); }
+      50%       { box-shadow: 0 0 72px rgba(155,111,255,.45); }
+    }
+    .page-header h1 { font-family: "Playfair Display", serif; font-size: 30px; color: #fff; margin-bottom: 8px; }
+    .page-header p { color: var(--muted); font-size: 14px; max-width: 540px; margin: 0 auto; }
+
+    /* ── UPLOAD ZONE ── */
+    .upload-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 22px; padding: 32px; margin-bottom: 28px;
+      box-shadow: 0 8px 48px rgba(0,0,0,.35);
+    }
+
+    .upload-zone {
+      border: 2px dashed var(--border); border-radius: 16px;
+      padding: 48px 24px; text-align: center; cursor: pointer;
+      transition: all .25s; background: var(--surface2);
+      position: relative; overflow: hidden;
+    }
+    .upload-zone:hover, .upload-zone.drag-over {
+      border-color: var(--blue); background: var(--blue-dim);
+    }
+    .upload-zone.file-selected {
+      border-color: var(--accent); background: var(--accent-dim);
+    }
+    .upload-zone input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    .upload-icon { font-size: 48px; display: block; margin-bottom: 14px; }
+    .upload-title { font-size: 17px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+    .upload-sub { font-size: 13px; color: var(--muted); }
+    .file-name {
+      margin-top: 14px; padding: 10px 16px;
+      background: rgba(0,200,150,.1); border: 1px solid rgba(0,200,150,.25);
+      border-radius: 10px; font-size: 13px; color: var(--accent);
+      display: none; align-items: center; gap: 8px;
+    }
+    .file-name.show { display: inline-flex; }
+
+    /* ── Supported types ── */
+    .supported-types {
+      display: flex; gap: 10px; flex-wrap: wrap;
+      margin-top: 20px; justify-content: center;
+    }
+    .type-badge {
+      padding: 5px 12px; border-radius: 20px; font-size: 12px;
+      border: 1px solid var(--border); color: var(--muted); background: var(--surface2);
+    }
+
+    /* ── Analyze Button ── */
+    .analyze-btn {
+      width: 100%; margin-top: 22px; padding: 15px;
+      background: linear-gradient(135deg, #3b9eff, #9b6fff);
+      border: none; border-radius: 14px;
+      font-family: "Sora", sans-serif; font-size: 15px; font-weight: 600;
+      color: #fff; cursor: pointer; transition: all .25s;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+    }
+    .analyze-btn:hover:not(:disabled) { opacity: .9; transform: translateY(-1px); box-shadow: 0 8px 32px rgba(59,158,255,.35); }
+    .analyze-btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+    /* ── Loading ── */
+    .loading-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 22px; padding: 48px 32px; text-align: center;
+      margin-bottom: 28px; display: none;
+    }
+    .loading-card.show { display: block; }
+    .spinner {
+      width: 56px; height: 56px; border-radius: 50%;
+      border: 3px solid var(--border);
+      border-top-color: var(--blue);
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-steps { display: flex; flex-direction: column; gap: 8px; margin-top: 20px; align-items: center; }
+    .loading-step {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 13px; color: var(--muted); padding: 8px 20px;
+      border-radius: 10px; background: var(--surface2); width: fit-content;
+    }
+    .loading-step.active { color: var(--blue); border: 1px solid var(--blue-dim); }
+    .loading-step.done { color: var(--accent); }
+    .step-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+
+    /* ── RESULTS ── */
+    #results { display: none; }
+    #results.show { display: block; }
+
+    /* Stats row */
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 24px; }
+    @media(max-width: 600px) { .stats-row { grid-template-columns: 1fr; } }
+
+    .stat-pill {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 20px; text-align: center;
+    }
+    .stat-pill.red   { border-color: rgba(255,92,92,.3);  background: var(--danger-dim); }
+    .stat-pill.green { border-color: rgba(0,200,150,.3);  background: var(--accent-dim); }
+    .stat-pill.warn  { border-color: rgba(255,165,0,.3);  background: var(--warn-dim);   }
+    .stat-num  { font-family: "Playfair Display", serif; font-size: 36px; font-weight: 700; }
+    .stat-pill.red   .stat-num { color: var(--danger); }
+    .stat-pill.green .stat-num { color: var(--accent); }
+    .stat-pill.warn  .stat-num { color: var(--warn);   }
+    .stat-label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    /* Section card */
+    .result-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 20px; padding: 28px; margin-bottom: 20px;
+    }
+    .result-card-title {
+      font-family: "Playfair Display", serif; font-size: 18px; color: #fff;
+      margin-bottom: 20px; display: flex; align-items: center; gap: 10px;
+    }
+
+    /* Value table */
+    .values-table { width: 100%; border-collapse: collapse; }
+    .values-table th {
+      text-align: left; font-size: 11px; font-weight: 600;
+      color: var(--muted); letter-spacing: .6px; text-transform: uppercase;
+      padding: 8px 12px; border-bottom: 1px solid var(--border);
+    }
+    .values-table td { padding: 12px 12px; border-bottom: 1px solid rgba(30,48,72,.5); font-size: 13px; }
+    .values-table tr:last-child td { border-bottom: none; }
+    .values-table tr:hover td { background: var(--surface2); }
+
+    .param-name { color: var(--text); font-weight: 500; }
+    .param-value { font-weight: 700; font-size: 14px; }
+    .param-range { color: var(--muted); font-size: 12px; }
+
+    /* Status badges */
+    .badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px; border-radius: 20px;
+      font-size: 11px; font-weight: 600;
+    }
+    .badge.normal        { background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(0,200,150,.25); }
+    .badge.high          { background: var(--warn-dim);   color: var(--warn);   border: 1px solid rgba(255,165,0,.25); }
+    .badge.low           { background: var(--blue-dim);   color: var(--blue);   border: 1px solid rgba(59,158,255,.25); }
+    .badge.critical_high { background: var(--danger-dim); color: var(--danger); border: 1px solid rgba(255,92,92,.3); }
+    .badge.critical_low  { background: var(--purple-dim); color: var(--purple); border: 1px solid rgba(155,111,255,.3); }
+
+    /* Progress bar for value */
+    .value-bar-wrap { width: 100px; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+    .value-bar { height: 100%; border-radius: 3px; transition: width .6s ease; }
+    .value-bar.normal        { background: var(--accent); }
+    .value-bar.high          { background: var(--warn);   }
+    .value-bar.low           { background: var(--blue);   }
+    .value-bar.critical_high { background: var(--danger); }
+    .value-bar.critical_low  { background: var(--purple); }
+
+    /* AI Analysis box */
+    .ai-analysis {
+      font-size: 14px; line-height: 1.85; color: var(--text);
+      white-space: pre-wrap; word-break: break-word;
+    }
+    .ai-analysis-loading {
+      display: flex; align-items: center; gap: 12px;
+      color: var(--muted); font-size: 13px; padding: 20px 0;
+    }
+
+    /* Disclaimer */
+    .disclaimer {
+      background: var(--warn-dim); border: 1px solid rgba(255,165,0,.25);
+      border-radius: 14px; padding: 16px 20px;
+      font-size: 13px; color: var(--warn);
+      display: flex; align-items: flex-start; gap: 10px;
+      margin-top: 20px;
+    }
+
+    /* Error */
+    .error-card {
+      background: var(--danger-dim); border: 1px solid rgba(255,92,92,.3);
+      border-radius: 16px; padding: 24px; text-align: center;
+      color: var(--danger); font-size: 14px; display: none; margin-bottom: 20px;
+    }
+    .error-card.show { display: block; }
+
+    /* Empty state */
+    .no-values {
+      text-align: center; padding: 32px; color: var(--muted); font-size: 14px;
+    }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
+    .tab {
+      padding: 8px 16px; border-radius: 10px; font-size: 13px; cursor: pointer;
+      border: 1px solid var(--border); color: var(--muted); background: var(--surface2);
+      transition: all .2s; font-family: "Sora", sans-serif;
+    }
+    .tab.active { color: var(--blue); border-color: rgba(59,158,255,.4); background: var(--blue-dim); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* Reset button */
+    .reset-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 20px; border-radius: 12px; cursor: pointer;
+      border: 1px solid var(--border); background: var(--surface2);
+      color: var(--muted); font-family: "Sora", sans-serif; font-size: 13px;
+      transition: all .2s; margin-bottom: 24px;
+    }
+    .reset-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+    @media(max-width: 600px) {
+      .page { padding: 20px 14px 50px; }
+      .page-header h1 { font-size: 22px; }
+      .upload-zone { padding: 32px 16px; }
+      nav { padding: 12px 16px; }
+      .nav-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── NAV ── -->
+<nav>
+  <a href="/" class="nav-logo">Medi<span>Bot</span></a>
+  <div class="nav-links">
+    <a href="/"                  class="nav-link">💬 Chat</a>
+    <a href="/medicines"         class="nav-link">💊 Medicines</a>
+    <a href="/symptom-checker"   class="nav-link">🩺 Symptoms</a>
+    <a href="/drug-interaction"  class="nav-link">⚗️ Interactions</a>
+    <a href="/report-analyzer"   class="nav-link active">📄 Reports</a>
+    <a href="/analytics"         class="nav-link">📊 Analytics</a>
+  </div>
+</nav>
+
+<div class="page">
+
+  <!-- ── PAGE HEADER ── -->
+  <div class="page-header">
+    <div class="header-icon">📄</div>
+    <h1>Medical Report Analyzer</h1>
+    <p>Apni blood test ya lab report PDF upload karein — AI simple language mein samjhayega</p>
+  </div>
+
+  <!-- ── ERROR ── -->
+  <div class="error-card" id="errorCard">
+    <div style="font-size:28px;margin-bottom:10px">❌</div>
+    <div id="errorMsg">Kuch error aaya</div>
+  </div>
+
+  <!-- ── UPLOAD CARD ── -->
+  <div class="upload-card" id="uploadSection">
+    <div class="upload-zone" id="uploadZone">
+      <input type="file" id="pdfInput" accept=".pdf"/>
+      <span class="upload-icon">📂</span>
+      <div class="upload-title">PDF Report yahan drop karein</div>
+      <div class="upload-sub">ya click karke file select karein</div>
+      <div class="file-name" id="fileName">
+        <span>📎</span>
+        <span id="fileNameText"></span>
+      </div>
+    </div>
+
+    <div class="supported-types">
+      <span class="type-badge">🩸 Blood Test (CBC)</span>
+      <span class="type-badge">🍬 Sugar / HbA1c</span>
+      <span class="type-badge">🫀 Lipid Profile</span>
+      <span class="type-badge">🫘 Kidney Function</span>
+      <span class="type-badge">🟤 Liver Function</span>
+      <span class="type-badge">🦋 Thyroid</span>
+      <span class="type-badge">💊 Vitamin Levels</span>
+      <span class="type-badge">📋 Discharge Summary</span>
+    </div>
+
+    <button class="analyze-btn" id="analyzeBtn" disabled onclick="analyzeReport()">
+      <span>🔬</span> Report Analyze Karein
+    </button>
+  </div>
+
+  <!-- ── LOADING ── -->
+  <div class="loading-card" id="loadingCard">
+    <div class="spinner"></div>
+    <div style="font-size:16px;font-weight:600;color:var(--text)">Report analyze ho rahi hai...</div>
+    <div class="loading-steps">
+      <div class="loading-step active" id="step1"><div class="step-dot"></div> PDF se text extract ho raha hai</div>
+      <div class="loading-step" id="step2"><div class="step-dot"></div> Values identify ki ja rahi hain</div>
+      <div class="loading-step" id="step3"><div class="step-dot"></div> AI explanation generate ho raha hai</div>
+    </div>
+  </div>
+
+  <!-- ── RESULTS ── -->
+  <div id="results">
+
+    <button class="reset-btn" onclick="resetAll()">← Naya Report Upload Karein</button>
+
+    <!-- Stats row -->
+    <div class="stats-row">
+      <div class="stat-pill red">
+        <div class="stat-num" id="statAbnormal">0</div>
+        <div class="stat-label">⚠️ Abnormal Values</div>
+      </div>
+      <div class="stat-pill warn">
+        <div class="stat-num" id="statCritical">0</div>
+        <div class="stat-label">🚨 Critical Values</div>
+      </div>
+      <div class="stat-pill green">
+        <div class="stat-num" id="statNormal">0</div>
+        <div class="stat-label">✅ Normal Values</div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('ai')">🤖 AI Analysis</button>
+      <button class="tab" onclick="switchTab('values')">📊 Values Table</button>
+    </div>
+
+    <!-- AI Panel -->
+    <div class="tab-panel active" id="panel-ai">
+      <div class="result-card">
+        <div class="result-card-title">🤖 AI Explanation</div>
+        <div class="ai-analysis" id="aiAnalysis">Loading...</div>
+        <div class="disclaimer">
+          <span>⚠️</span>
+          <span>Yeh sirf AI-based analysis hai. Koi bhi decision lene se pehle apne doctor se zaroor milein.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Values Panel -->
+    <div class="tab-panel" id="panel-values">
+      <div class="result-card">
+        <div class="result-card-title">📊 Extracted Values</div>
+        <div id="valuesContent"></div>
+      </div>
+    </div>
+
+  </div><!-- /results -->
+
+</div><!-- /page -->
+
+<script>
+  // ── File input handling ──────────────────────────────────────
+  const pdfInput   = document.getElementById('pdfInput');
+  const uploadZone = document.getElementById('uploadZone');
+  const analyzeBtn = document.getElementById('analyzeBtn');
+  const fileName   = document.getElementById('fileName');
+  const fileNameTx = document.getElementById('fileNameText');
+
+  pdfInput.addEventListener('change', () => {
+    if (pdfInput.files.length) {
+      const f = pdfInput.files[0];
+      fileNameTx.textContent = f.name + ' (' + (f.size/1024).toFixed(1) + ' KB)';
+      fileName.classList.add('show');
+      uploadZone.classList.add('file-selected');
+      analyzeBtn.disabled = false;
+    }
+  });
+
+  // Drag & Drop
+  uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+  uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+  uploadZone.addEventListener('drop', e => {
+    e.preventDefault();
+    uploadZone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file && file.name.endsWith('.pdf')) {
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      pdfInput.files = dt.files;
+      pdfInput.dispatchEvent(new Event('change'));
+    }
+  });
+
+  // ── Tab switching ────────────────────────────────────────────
+  function switchTab(name) {
+    document.querySelectorAll('.tab').forEach((t,i) => {
+      const panels = ['ai','values'];
+      t.classList.toggle('active', panels[i] === name);
+    });
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-' + name).classList.add('active');
+  }
+
+  // ── Analyze ─────────────────────────────────────────────────
+  async function analyzeReport() {
+    if (!pdfInput.files.length) return;
+
+    // Show loading
+    document.getElementById('uploadSection').style.display = 'none';
+    document.getElementById('loadingCard').classList.add('show');
+    document.getElementById('results').classList.remove('show');
+    document.getElementById('errorCard').classList.remove('show');
+
+    // Animate steps
+    const steps = ['step1','step2','step3'];
+    let stepIdx = 0;
+    const stepTimer = setInterval(() => {
+      if (stepIdx > 0) {
+        document.getElementById(steps[stepIdx-1]).classList.remove('active');
+        document.getElementById(steps[stepIdx-1]).classList.add('done');
+      }
+      if (stepIdx < steps.length) {
+        document.getElementById(steps[stepIdx]).classList.add('active');
+        stepIdx++;
+      } else {
+        clearInterval(stepTimer);
+      }
+    }, 1800);
+
+    try {
+      const formData = new FormData();
+      formData.append('report', pdfInput.files[0]);
+
+      const res  = await fetch('/api/analyze-report', { method: 'POST', body: formData });
+      const data = await res.json();
+
+      clearInterval(stepTimer);
+      document.getElementById('loadingCard').classList.remove('show');
+
+      if (!data.success) {
+        showError(data.error || 'Analysis fail ho gayi');
+        return;
+      }
+
+      renderResults(data);
+
+    } catch (err) {
+      clearInterval(stepTimer);
+      document.getElementById('loadingCard').classList.remove('show');
+      showError('Server se connect nahi ho saka: ' + err.message);
+    }
+  }
+
+  // ── Render results ───────────────────────────────────────────
+  function renderResults(data) {
+    // Stats
+    document.getElementById('statAbnormal').textContent = data.abnormal_count || 0;
+    document.getElementById('statCritical').textContent = data.critical_count || 0;
+    document.getElementById('statNormal').textContent   = data.normal_count   || 0;
+
+    // AI Analysis
+    document.getElementById('aiAnalysis').textContent = data.ai_analysis || 'AI response nahi mila.';
+
+    // Values table
+    renderValuesTable(data.local_values || []);
+
+    document.getElementById('results').classList.add('show');
+    document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function renderValuesTable(values) {
+    const container = document.getElementById('valuesContent');
+
+    if (!values.length) {
+      container.innerHTML = `<div class="no-values">🔍 Is report mein koi known blood test values nahi mili.<br><small style="color:var(--muted)">AI analysis tab bhi mil gayi hogi.</small></div>`;
+      return;
+    }
+
+    const statusLabel = {
+      normal:        '✅ Normal',
+      high:          '⬆️ High',
+      low:           '⬇️ Low',
+      critical_high: '🚨 Critical High',
+      critical_low:  '⚠️ Critical Low',
+    };
+
+    let rows = values.map(v => {
+      // Calculate bar width (0-100%)
+      const range = v.max - v.min;
+      let pct = range > 0 ? ((v.value - v.min) / range) * 60 + 20 : 50;
+      pct = Math.max(5, Math.min(95, pct));
+
+      return `
+        <tr>
+          <td><span class="param-name">${v.parameter}</span></td>
+          <td><span class="param-value" style="color:${statusColor(v.status)}">${v.value} <small>${v.unit}</small></span></td>
+          <td class="param-range">${v.min} – ${v.max} ${v.unit}</td>
+          <td>
+            <div class="value-bar-wrap">
+              <div class="value-bar ${v.status}" style="width:${pct}%"></div>
+            </div>
+          </td>
+          <td><span class="badge ${v.status}">${statusLabel[v.status] || v.status}</span></td>
+        </tr>`;
+    }).join('');
+
+    container.innerHTML = `
+      <table class="values-table">
+        <thead>
+          <tr>
+            <th>Parameter</th>
+            <th>Value</th>
+            <th>Normal Range</th>
+            <th>Position</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  function statusColor(s) {
+    const m = { normal:'var(--accent)', high:'var(--warn)', low:'var(--blue)', critical_high:'var(--danger)', critical_low:'var(--purple)' };
+    return m[s] || 'var(--text)';
+  }
+
+  // ── Error ────────────────────────────────────────────────────
+  function showError(msg) {
+    document.getElementById('uploadSection').style.display = '';
+    document.getElementById('errorMsg').textContent = msg;
+    document.getElementById('errorCard').classList.add('show');
+  }
+
+  // ── Reset ────────────────────────────────────────────────────
+  function resetAll() {
+    pdfInput.value = '';
+    fileName.classList.remove('show');
+    uploadZone.classList.remove('file-selected');
+    analyzeBtn.disabled = true;
+    document.getElementById('results').classList.remove('show');
+    document.getElementById('errorCard').classList.remove('show');
+    document.getElementById('uploadSection').style.display = '';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+</script>
+</body>
+</html>

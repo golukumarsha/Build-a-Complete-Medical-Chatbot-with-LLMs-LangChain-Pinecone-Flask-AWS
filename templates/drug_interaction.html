@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MediBot — Drug Interaction Checker</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg: #080e14; --surface: #0f1923; --surface2: #162030;
+      --border: #1e3048; --accent: #00c896; --accent-dim: #00c89622;
+      --blue: #3b9eff; --blue-dim: #3b9eff18; --text: #d8eaf8;
+      --muted: #5a7a99; --danger: #ff5c5c; --danger-dim: #ff5c5c18;
+      --warn: #ffa500; --warn-dim: #ffa50018;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { min-height: 100vh; background: var(--bg); color: var(--text); font-family: "Sora", sans-serif; font-size: 15px; line-height: 1.6; }
+
+    body::before {
+      content: ""; position: fixed; inset: 0;
+      background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 48px 48px; opacity: 0.14; pointer-events: none;
+    }
+
+    /* ── NAV ── */
+    nav { position: sticky; top: 0; z-index: 100; background: rgba(8,14,20,.92); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 13px 28px; display: flex; align-items: center; gap: 12px; }
+    .nav-logo { font-family: "Playfair Display", serif; font-size: 20px; color: #fff; text-decoration: none; }
+    .nav-logo span { color: var(--accent); }
+    .nav-links { display: flex; gap: 6px; margin-left: auto; flex-wrap: wrap; }
+    .nav-link { padding: 7px 13px; border-radius: 8px; color: var(--muted); text-decoration: none; font-size: 13px; transition: all .2s; border: 1px solid transparent; }
+    .nav-link:hover { color: var(--text); background: var(--surface2); border-color: var(--border); }
+    .nav-link.active { color: var(--accent); background: var(--accent-dim); border-color: rgba(0,200,150,.3); }
+
+    /* ── PAGE ── */
+    .page { position: relative; z-index: 1; max-width: 900px; margin: 0 auto; padding: 36px 20px 70px; }
+
+    /* ── HEADER ── */
+    .page-header { text-align: center; margin-bottom: 40px; }
+    .header-icon { width: 76px; height: 76px; border-radius: 24px; background: linear-gradient(135deg, #ff5c5c, #ffa500); display: flex; align-items: center; justify-content: center; font-size: 34px; margin: 0 auto 18px; box-shadow: 0 0 40px rgba(255,92,92,.25); }
+    .page-header h1 { font-family: "Playfair Display", serif; font-size: 30px; color: #fff; margin-bottom: 8px; }
+    .page-header p { color: var(--muted); font-size: 14px; max-width: 520px; margin: 0 auto; }
+
+    /* ── CHECKER CARD ── */
+    .checker-card { background: var(--surface); border: 1px solid var(--border); border-radius: 22px; padding: 32px; margin-bottom: 28px; box-shadow: 0 8px 48px rgba(0,0,0,.35); }
+
+    .drugs-row { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: end; margin-bottom: 24px; }
+    @media (max-width: 600px) { .drugs-row { grid-template-columns: 1fr; } .vs-badge { display: none; } }
+
+    .drug-input-group label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 8px; letter-spacing: .5px; }
+    .drug-input-wrap { position: relative; }
+    .drug-input-wrap input {
+      width: 100%; padding: 14px 16px 14px 44px;
+      background: var(--surface2); border: 1.5px solid var(--border);
+      border-radius: 12px; color: var(--text); font-size: 15px;
+      font-family: "Sora", sans-serif; outline: none; transition: all .2s;
+    }
+    .drug-input-wrap input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,200,150,.12); }
+    .drug-input-wrap input::placeholder { color: var(--muted); }
+    .drug-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 18px; pointer-events: none; }
+
+    /* Autocomplete dropdown */
+    .autocomplete-list { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #0d1f33; border: 1px solid rgba(0,200,150,.25); border-radius: 10px; z-index: 50; max-height: 200px; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,.4); display: none; }
+    .autocomplete-item { padding: 10px 16px; font-size: 13px; color: var(--text); cursor: pointer; transition: background .15s; }
+    .autocomplete-item:hover, .autocomplete-item.active { background: var(--accent-dim); color: var(--accent); }
+    .autocomplete-item small { display: block; color: var(--muted); font-size: 11px; margin-top: 2px; }
+
+    .vs-badge { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; background: var(--surface2); border: 1.5px solid var(--border); font-size: 12px; font-weight: 700; color: var(--muted); flex-shrink: 0; margin-bottom: 2px; }
+
+    /* ── Check Button ── */
+    .check-btn {
+      width: 100%; padding: 16px;
+      background: linear-gradient(135deg, #ff5c5c, #ffa500);
+      border: none; border-radius: 13px;
+      color: #fff; font-size: 16px; font-weight: 700;
+      font-family: "Sora", sans-serif; cursor: pointer;
+      transition: opacity .2s, transform .1s;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      box-shadow: 0 6px 24px rgba(255,92,92,.25);
+    }
+    .check-btn:hover { opacity: .9; }
+    .check-btn:active { transform: scale(.98); }
+    .check-btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+
+    /* ── Spinner ── */
+    .spinner { width: 20px; height: 20px; border: 2.5px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Quick Pairs ── */
+    .quick-label { font-size: 12px; color: var(--muted); margin: 20px 0 10px; font-weight: 600; letter-spacing: .4px; }
+    .quick-pairs { display: flex; flex-wrap: wrap; gap: 8px; }
+    .pair-chip {
+      padding: 7px 14px; border-radius: 20px;
+      background: var(--surface2); border: 1px solid var(--border);
+      color: var(--muted); font-size: 12px; cursor: pointer;
+      transition: all .2s; display: flex; align-items: center; gap: 6px;
+    }
+    .pair-chip:hover { border-color: var(--danger); color: var(--danger); background: var(--danger-dim); }
+    .pair-chip .sev-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+    /* ── RESULT CARD ── */
+    .result-card { background: var(--surface); border-radius: 20px; padding: 28px; margin-bottom: 20px; animation: fadeUp .35s ease; border: 1.5px solid var(--border); }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+    .result-card.major    { border-color: rgba(255,92,92,.5);  background: linear-gradient(160deg, var(--surface), rgba(255,92,92,.04)); }
+    .result-card.moderate { border-color: rgba(255,165,0,.4);  background: linear-gradient(160deg, var(--surface), rgba(255,165,0,.04)); }
+    .result-card.minor    { border-color: rgba(59,158,255,.4); background: linear-gradient(160deg, var(--surface), rgba(59,158,255,.04)); }
+    .result-card.none     { border-color: rgba(0,200,150,.4);  background: linear-gradient(160deg, var(--surface), rgba(0,200,150,.04)); }
+
+    /* Result header */
+    .result-header { display: flex; align-items: center; gap: 16px; margin-bottom: 22px; padding-bottom: 18px; border-bottom: 1px solid var(--border); }
+    .result-icon { font-size: 44px; flex-shrink: 0; }
+    .result-drugs { flex: 1; }
+    .result-drugs .drug-names { font-size: 20px; font-weight: 700; color: #fff; font-family: "Playfair Display", serif; }
+    .result-drugs .drug-names span { color: var(--muted); font-size: 14px; font-family: "Sora", sans-serif; font-weight: 400; margin: 0 8px; }
+    .severity-pill {
+      padding: 6px 16px; border-radius: 30px;
+      font-size: 12px; font-weight: 700; letter-spacing: .5px;
+      flex-shrink: 0;
+    }
+    .severity-pill.major    { background: var(--danger-dim); color: var(--danger); border: 1px solid rgba(255,92,92,.4); }
+    .severity-pill.moderate { background: var(--warn-dim);   color: var(--warn);   border: 1px solid rgba(255,165,0,.4); }
+    .severity-pill.minor    { background: var(--blue-dim);   color: var(--blue);   border: 1px solid rgba(59,158,255,.4); }
+    .severity-pill.none     { background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(0,200,150,.4); }
+
+    /* Result sections */
+    .result-section { margin-bottom: 18px; }
+    .section-label { font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: .6px; text-transform: uppercase; margin-bottom: 8px; }
+    .section-content { background: var(--surface2); border-radius: 10px; padding: 14px 16px; font-size: 14px; color: var(--text); line-height: 1.7; }
+    .section-content.danger-bg { background: rgba(255,92,92,.08); border: 1px solid rgba(255,92,92,.2); color: #ffb0b0; }
+    .section-content.warn-bg   { background: rgba(255,165,0,.08); border: 1px solid rgba(255,165,0,.2); color: #ffd090; }
+    .section-content.safe-bg   { background: rgba(0,200,150,.08); border: 1px solid rgba(0,200,150,.2); color: #90ffd0; }
+
+    /* FDA warnings list */
+    .fda-list { display: flex; flex-direction: column; gap: 8px; }
+    .fda-item { background: var(--surface2); border-left: 3px solid var(--warn); border-radius: 0 8px 8px 0; padding: 10px 14px; font-size: 13px; color: var(--text); line-height: 1.6; }
+
+    /* RxNorm badge */
+    .rxcui-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 8px; background: var(--blue-dim); border: 1px solid rgba(59,158,255,.25); color: var(--blue); font-size: 11px; margin: 4px; }
+
+    /* Sources */
+    .sources-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
+    .source-tag { padding: 4px 12px; border-radius: 14px; background: var(--surface2); border: 1px solid var(--border); color: var(--muted); font-size: 11px; }
+
+    /* Disclaimer */
+    .disclaimer { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; font-size: 13px; color: var(--muted); text-align: center; margin-top: 10px; }
+
+    /* Error / No result */
+    .error-box { display: none; background: var(--danger-dim); border: 1px solid rgba(255,92,92,.3); border-radius: 12px; padding: 14px 18px; color: #ff9090; font-size: 14px; margin-bottom: 20px; animation: fadeUp .25s ease; }
+
+    /* ── INFO SECTION ── */
+    .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-top: 32px; }
+    .info-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
+    .info-card h3 { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+    .info-card p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+  </style>
+</head>
+<body>
+
+<!-- ── NAV ── -->
+<nav>
+  <a href="/" class="nav-logo">Medi<span>Bot</span></a>
+  <div class="nav-links">
+    <a href="/"                    class="nav-link">💬 Chat</a>
+    <a href="/symptom-checker"     class="nav-link">🩺 Symptoms</a>
+    <a href="/drug-interaction"    class="nav-link active">💊 Drug Check</a>
+    <a href="/medicines"           class="nav-link">🏥 Medicines</a>
+    <a href="/history"             class="nav-link">🗂 History</a>
+  </div>
+</nav>
+
+<div class="page">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-icon">⚠️</div>
+    <h1>Drug Interaction Checker</h1>
+    <p>Do medicines ka naam daalo — AI check karega ki inhe saath lena safe hai ya nahi.<br>OpenFDA + RxNorm aur 30+ known interactions database use hota hai.</p>
+  </div>
+
+  <!-- Checker Card -->
+  <div class="checker-card">
+
+    <div class="drugs-row">
+      <!-- Drug A -->
+      <div class="drug-input-group">
+        <label>💊 PEHLI MEDICINE</label>
+        <div class="drug-input-wrap">
+          <span class="drug-icon">💊</span>
+          <input type="text" id="drugA" placeholder="e.g. Aspirin, Metformin..." autocomplete="off" oninput="onDrugInput('A')" onkeydown="onKeyNav(event,'A')"/>
+          <div class="autocomplete-list" id="acA"></div>
+        </div>
+      </div>
+
+      <div class="vs-badge">VS</div>
+
+      <!-- Drug B -->
+      <div class="drug-input-group">
+        <label>💊 DOOSRI MEDICINE</label>
+        <div class="drug-input-wrap">
+          <span class="drug-icon">🔵</span>
+          <input type="text" id="drugB" placeholder="e.g. Ibuprofen, Warfarin..." autocomplete="off" oninput="onDrugInput('B')" onkeydown="onKeyNav(event,'B')"/>
+          <div class="autocomplete-list" id="acB"></div>
+        </div>
+      </div>
+    </div>
+
+    <button class="check-btn" id="checkBtn" onclick="checkInteraction()">
+      ⚠️ Interaction Check Karo
+    </button>
+
+    <!-- Quick Pairs -->
+    <div class="quick-label">⚡ KNOWN DANGEROUS COMBINATIONS — click karo:</div>
+    <div class="quick-pairs" id="quickPairs"></div>
+  </div>
+
+  <!-- Error Box -->
+  <div class="error-box" id="errorBox"></div>
+
+  <!-- Result Area -->
+  <div id="resultArea"></div>
+
+  <!-- Info Cards -->
+  <div class="info-grid">
+    <div class="info-card">
+      <h3>🔴 Major Interaction</h3>
+      <p>Ye combination dangerous hai. Life-threatening side effects ho sakte hain. Doctor se turant baat karo.</p>
+    </div>
+    <div class="info-card">
+      <h3>🟡 Moderate Interaction</h3>
+      <p>Caution zaroori hai. Dono medicines saath li ja sakti hain lekin close monitoring chahiye.</p>
+    </div>
+    <div class="info-card">
+      <h3>🔵 Minor Interaction</h3>
+      <p>Chhota interaction hai. Mostly safe hai lekin doctor ko inform karna better hai.</p>
+    </div>
+    <div class="info-card">
+      <h3>📡 Data Sources</h3>
+      <p>OpenFDA Drug Labels (US FDA), RxNorm (NLM), aur MediBot ki curated Indian medicine database.</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ── MEDICINE AUTOCOMPLETE LIST ── */
+const MEDICINES = [
+  "Paracetamol","Ibuprofen","Aspirin","Metformin","Warfarin","Amoxicillin",
+  "Azithromycin","Ciprofloxacin","Omeprazole","Cetirizine","Atorvastatin",
+  "Amlodipine","Lisinopril","Metronidazole","Tramadol","Fluoxetine",
+  "Alprazolam","Diclofenac","Naproxen","Digoxin","Amiodarone","Atenolol",
+  "Verapamil","Rifampicin","Glipizide","Simvastatin","Rosuvastatin",
+  "Clopidogrel","Pantoprazole","Clarithromycin","Gemfibrozil","Alcohol",
+  "Crocin","Dolo 650","Brufen","Combiflam","Ecosprin","Glycomet","Glucophage",
+  "Allegra","Ranitidine","Pantop","Methotrexate","Prednisone","Insulin",
+  "Fexofenadine","Clindamycin","Doxycycline","Tetracycline","Erythromycin",
+  "Calcium","Iron","Zinc","Vitamin D","Vitamin C","Potassium","Magnesium",
+  "Contraceptive Pill","St. John's Wort","Antacid"
+];
+
+/* ── QUICK PAIRS ── */
+const QUICK_PAIRS = [
+  { a: "Warfarin",    b: "Aspirin",      sev: "#ff5c5c" },
+  { a: "Paracetamol", b: "Alcohol",      sev: "#ff5c5c" },
+  { a: "Ibuprofen",   b: "Aspirin",      sev: "#ffa500" },
+  { a: "Atorvastatin",b: "Clarithromycin",sev: "#ff5c5c" },
+  { a: "Metformin",   b: "Alcohol",      sev: "#ff5c5c" },
+  { a: "Omeprazole",  b: "Clopidogrel",  sev: "#ffa500" },
+  { a: "Alprazolam",  b: "Alcohol",      sev: "#ff5c5c" },
+  { a: "Amlodipine",  b: "Simvastatin",  sev: "#ffa500" },
+  { a: "Ciprofloxacin",b:"Antacid",      sev: "#ffa500" },
+  { a: "Calcium",     b: "Iron",         sev: "#3b9eff" },
+];
+
+/* Render quick pairs */
+(function renderQuickPairs() {
+  const wrap = document.getElementById("quickPairs");
+  QUICK_PAIRS.forEach(p => {
+    const chip = document.createElement("div");
+    chip.className = "pair-chip";
+    chip.innerHTML = `<span class="sev-dot" style="background:${p.sev}"></span>${p.a} + ${p.b}`;
+    chip.onclick = () => {
+      document.getElementById("drugA").value = p.a;
+      document.getElementById("drugB").value = p.b;
+      closeAll();
+      checkInteraction();
+    };
+    wrap.appendChild(chip);
+  });
+})();
+
+/* ── AUTOCOMPLETE ── */
+let acIdx = { A: -1, B: -1 };
+
+function onDrugInput(which) {
+  const val = document.getElementById("drug"+which).value.trim().toLowerCase();
+  const list = document.getElementById("ac"+which);
+  acIdx[which] = -1;
+  if (val.length < 2) { list.style.display="none"; return; }
+  const matches = MEDICINES.filter(m => m.toLowerCase().includes(val)).slice(0,8);
+  if (!matches.length) { list.style.display="none"; return; }
+  list.innerHTML = matches.map((m,i) =>
+    `<div class="autocomplete-item" data-idx="${i}" onclick="selectAC('${which}','${m}')">${m}</div>`
+  ).join("");
+  list.style.display = "block";
+}
+
+function selectAC(which, value) {
+  document.getElementById("drug"+which).value = value;
+  document.getElementById("ac"+which).style.display = "none";
+  acIdx[which] = -1;
+}
+
+function onKeyNav(e, which) {
+  const list = document.getElementById("ac"+which);
+  const items = list.querySelectorAll(".autocomplete-item");
+  if (!items.length || list.style.display==="none") {
+    if (e.key === "Enter") { e.preventDefault(); checkInteraction(); }
+    return;
+  }
+  if (e.key === "ArrowDown") { e.preventDefault(); acIdx[which] = Math.min(acIdx[which]+1, items.length-1); highlight(which); }
+  else if (e.key === "ArrowUp") { e.preventDefault(); acIdx[which] = Math.max(acIdx[which]-1, -1); highlight(which); }
+  else if (e.key === "Enter") {
+    e.preventDefault();
+    if (acIdx[which] >= 0 && items[acIdx[which]]) {
+      selectAC(which, items[acIdx[which]].textContent);
+    } else { closeAll(); checkInteraction(); }
+  }
+  else if (e.key === "Escape") { list.style.display="none"; }
+}
+
+function highlight(which) {
+  const items = document.querySelectorAll(`#ac${which} .autocomplete-item`);
+  items.forEach((el,i) => el.classList.toggle("active", i===acIdx[which]));
+  if (acIdx[which] >= 0 && items[acIdx[which]]) {
+    document.getElementById("drug"+which).value = items[acIdx[which]].textContent;
+  }
+}
+
+function closeAll() {
+  document.getElementById("acA").style.display = "none";
+  document.getElementById("acB").style.display = "none";
+}
+document.addEventListener("click", e => {
+  if (!e.target.closest(".drug-input-wrap")) closeAll();
+});
+
+/* ── MAIN CHECK ── */
+async function checkInteraction() {
+  const dA = document.getElementById("drugA").value.trim();
+  const dB = document.getElementById("drugB").value.trim();
+  const btn = document.getElementById("checkBtn");
+  const errBox = document.getElementById("errorBox");
+  const resultArea = document.getElementById("resultArea");
+
+  closeAll();
+  errBox.style.display = "none";
+  resultArea.innerHTML = "";
+
+  if (!dA || !dB) {
+    errBox.textContent = "⚠️ Dono medicines ka naam daalo!";
+    errBox.style.display = "block"; return;
+  }
+  if (dA.toLowerCase() === dB.toLowerCase()) {
+    errBox.textContent = "⚠️ Dono alag medicines daalo!";
+    errBox.style.display = "block"; return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Checking APIs...';
+
+  try {
+    const res  = await fetch("/api/drug-interaction", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ drug_a: dA, drug_b: dB })
+    });
+    const data = await res.json();
+
+    if (!data.success) {
+      errBox.textContent = "❌ " + (data.error || "Kuch error aaya");
+      errBox.style.display = "block"; return;
+    }
+
+    renderResult(data);
+  } catch(err) {
+    errBox.textContent = "❌ Server se connect nahi hua. Flask app chal raha hai?";
+    errBox.style.display = "block";
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = "⚠️ Interaction Check Karo";
+  }
+}
+
+/* ── RENDER RESULT ── */
+function renderResult(d) {
+  const area = document.getElementById("resultArea");
+  const sev  = d.severity || "none";
+  const sevLabel = { major:"🚨 MAJOR", moderate:"⚠️ MODERATE", minor:"ℹ️ MINOR", none:"✅ SAFE" };
+  const bgClass  = { major:"danger-bg", moderate:"warn-bg", minor:"", none:"safe-bg" };
+
+  /* ── Main Result Card ── */
+  let html = `
+  <div class="result-card ${sev}">
+    <div class="result-header">
+      <div class="result-icon">${d.severity_icon || (sev==="none"?"✅":"⚠️")}</div>
+      <div class="result-drugs">
+        <div class="drug-names">${esc(d.drug_a)} <span>+</span> ${esc(d.drug_b)}</div>
+        <div style="color:var(--muted);font-size:13px;margin-top:4px">
+          ${d.rxcui_a ? `<span class="rxcui-badge">RxCUI: ${d.rxcui_a}</span>` : ""}
+          ${d.rxcui_b ? `<span class="rxcui-badge">RxCUI: ${d.rxcui_b}</span>` : ""}
+        </div>
+      </div>
+      <div class="severity-pill ${sev}">${sevLabel[sev] || sev.toUpperCase()}</div>
+    </div>`;
+
+  /* Summary */
+  if (d.summary) {
+    html += `
+    <div class="result-section">
+      <div class="section-label">📋 Interaction Summary</div>
+      <div class="section-content ${bgClass[sev] || ""}">${esc(d.summary)}</div>
+    </div>`;
+  }
+
+  /* Mechanism */
+  if (d.mechanism) {
+    html += `
+    <div class="result-section">
+      <div class="section-label">🔬 Mechanism (Kaise Hota Hai)</div>
+      <div class="section-content">${esc(d.mechanism)}</div>
+    </div>`;
+  }
+
+  /* Advice */
+  if (d.advice) {
+    html += `
+    <div class="result-section">
+      <div class="section-label">💡 Kya Karna Chahiye</div>
+      <div class="section-content ${sev==="major"?"danger-bg":sev==="moderate"?"warn-bg":"safe-bg"}">${esc(d.advice)}</div>
+    </div>`;
+  }
+
+  /* FDA Warnings */
+  if (d.fda_warnings && d.fda_warnings.length > 0) {
+    html += `
+    <div class="result-section">
+      <div class="section-label">🏛️ FDA Drug Label Warnings</div>
+      <div class="fda-list">
+        ${d.fda_warnings.map(w => `<div class="fda-item">📌 ${esc(w)}</div>`).join("")}
+      </div>
+    </div>`;
+  }
+
+  /* RxNorm result */
+  if (d.rxnorm_result && d.rxnorm_result.description) {
+    html += `
+    <div class="result-section">
+      <div class="section-label">📡 RxNorm Database</div>
+      <div class="section-content">${esc(d.rxnorm_result.description)}</div>
+    </div>`;
+  }
+
+  /* Sources + Disclaimer */
+  html += `
+    <div class="sources-row">
+      <span style="font-size:11px;color:var(--muted);align-self:center">Sources:</span>
+      ${(d.sources||[]).map(s=>`<span class="source-tag">📚 ${esc(s)}</span>`).join("")}
+    </div>
+  </div>`;
+
+  /* Disclaimer */
+  html += `<div class="disclaimer">⚠️ ${esc(d.disclaimer)}</div>`;
+
+  area.innerHTML = html;
+  area.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function esc(s) {
+  return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+</script>
+</body>
+</html>

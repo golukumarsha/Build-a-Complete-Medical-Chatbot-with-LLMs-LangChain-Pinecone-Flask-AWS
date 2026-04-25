@@ -1,6 +1,29 @@
 # app.py — MediBot: Groq + RAG + Medical Image + MongoDB + JWT Auth
 from src.auth_routes import auth_bp
+from src.analytics import get_all_analytics
+from src.symptom_checker import check_symptoms
+from src.drug_interaction import check_drug_interaction
+from src.medical_report_analyzer import analyze_medical_report
 from src.image_helper import get_medical_image
+
+# ── Bot integrations (optional — .env pe depend) ──────────────
+try:
+    from src.whatsapp_bot import handle_whatsapp_message, validate_twilio_signature
+    WHATSAPP_OK = True
+    print("✅ WhatsApp bot module loaded!")
+except ImportError:
+    WHATSAPP_OK = False
+    print("⚠️  WhatsApp: twilio install nahi hai (pip install twilio)")
+
+try:
+    from src.telegram_bot import (
+        init_telegram_handlers, process_telegram_update, run_telegram_polling
+    )
+    TELEGRAM_OK = True
+    print("✅ Telegram bot module loaded!")
+except ImportError:
+    TELEGRAM_OK = False
+    print("⚠️  Telegram: python-telegram-bot install nahi hai")
 from src.helper import download_hugging_face_embeddings
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
@@ -115,6 +138,21 @@ rag_chain = (
     {"context": retriever | format_docs, "input": RunnablePassthrough()}
     | prompt | llm | StrOutputParser()
 )
+
+# ── Bot init — RAG chain ready hone ke baad ───────────────────
+if TELEGRAM_OK:
+    init_telegram_handlers(rag_chain, check_symptoms, check_drug_interaction)
+
+    # Optional: Polling mode for local dev (set TELEGRAM_POLLING=true in .env)
+    if os.environ.get("TELEGRAM_POLLING", "").lower() == "true":
+        import threading
+        _tg_thread = threading.Thread(
+            target=run_telegram_polling,
+            args=(rag_chain, check_symptoms, check_drug_interaction),
+            daemon=True,
+        )
+        _tg_thread.start()
+        print("🤖 Telegram polling thread started!")
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -403,6 +441,160 @@ def api_delete(n):
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+@app.route("/symptom-checker")
+def symptom_page():
+    return render_template("symptom_checker.html")
+
+
+@app.route("/api/symptoms", methods=["POST"])
+def symptom_check():
+    try:
+        data = request.get_json(silent=True) or {}
+        text = data.get("text", "")
+        result = check_symptoms(text)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/analytics")
+def analytics_page():
+    return render_template("analytics.html")
+
+
+@app.route("/api/analytics")
+def api_analytics():
+    try:
+        data = get_all_analytics()
+        return jsonify({"success": True, **data})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ═══════════════════════════════════════════════════════════════
+#  MEDICAL REPORT ANALYZER
+# ═══════════════════════════════════════════════════════════════
+
+@app.route("/report-analyzer")
+def report_analyzer_page():
+    return render_template("medical_report.html")
+
+
+@app.route("/api/analyze-report", methods=["POST"])
+def api_analyze_report():
+    try:
+        if "report" not in request.files:
+            return jsonify({"success": False, "error": "PDF file upload karein ('report' field)"}), 400
+
+        file = request.files["report"]
+
+        if file.filename == "":
+            return jsonify({"success": False, "error": "File select nahi ki"}), 400
+
+        if not file.filename.lower().endswith(".pdf"):
+            return jsonify({"success": False, "error": "Sirf PDF files supported hain"}), 400
+
+        # 10MB size limit
+        file_bytes = file.read()
+        if len(file_bytes) > 10 * 1024 * 1024:
+            return jsonify({"success": False, "error": "File 10MB se badi hai"}), 400
+
+        result = analyze_medical_report(file_bytes, filename=file.filename)
+        return jsonify(result)
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ═══════════════════════════════════════════════════════════════
+#  WHATSAPP WEBHOOK (Twilio)
+# ═══════════════════════════════════════════════════════════════
+
+@app.route("/webhook/whatsapp", methods=["POST"])
+def whatsapp_webhook():
+    if not WHATSAPP_OK:
+        return "Twilio not configured", 503
+
+    # Signature validation (production security)
+    signature = request.headers.get("X-Twilio-Signature", "")
+    request_url = request.url
+    if not validate_twilio_signature(request_url, request.form.to_dict(), signature):
+        return "Forbidden", 403
+
+    incoming_msg = request.form.get("Body", "").strip()
+    from_number = request.form.get("From", "")
+
+    twiml = handle_whatsapp_message(
+        incoming_msg=incoming_msg,
+        from_number=from_number,
+        rag_chain=rag_chain,
+        check_symptoms_fn=check_symptoms,
+        check_drug_fn=check_drug_interaction,
+    )
+    return twiml, 200, {"Content-Type": "text/xml"}
+
+
+@app.route("/webhook/whatsapp", methods=["GET"])
+def whatsapp_webhook_verify():
+    """Twilio sandbox verification (optional ping check)."""
+    return "MediBot WhatsApp Webhook Active ✅", 200
+
+
+# ═══════════════════════════════════════════════════════════════
+#  TELEGRAM WEBHOOK
+# ═══════════════════════════════════════════════════════════════
+
+@app.route("/webhook/telegram", methods=["POST"])
+def telegram_webhook():
+    if not TELEGRAM_OK:
+        return "Telegram not configured", 503
+
+    # Telegram Bot Token se URL secure karo
+    token_from_url = request.args.get("token", "")
+    if token_from_url != os.environ.get("TELEGRAM_BOT_TOKEN", ""):
+        return "Forbidden", 403
+
+    import asyncio
+    update_json = request.get_json(silent=True) or {}
+    try:
+        asyncio.run(process_telegram_update(update_json))
+    except RuntimeError:
+        # Already running event loop (gunicorn ke saath)
+        loop = asyncio.new_event_loop()
+        loop.run_until_complete(process_telegram_update(update_json))
+        loop.close()
+
+    return "ok", 200
+
+
+@app.route("/api/set-telegram-webhook", methods=["POST"])
+def set_telegram_webhook():
+    """
+    Ek baar call karo apna domain set hone ke baad.
+    POST /api/set-telegram-webhook  { "domain": "https://yourdomain.com" }
+    """
+    if not TELEGRAM_OK:
+        return jsonify({"success": False, "error": "Telegram not configured"}), 503
+
+    import requests as req_lib
+    data = request.get_json(silent=True) or {}
+    domain = (data.get("domain") or "").rstrip("/")
+    token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+
+    if not domain or not token:
+        return jsonify({"success": False, "error": "domain aur TELEGRAM_BOT_TOKEN dono chahiye"}), 400
+
+    webhook_url = f"{domain}/webhook/telegram?token={token}"
+    api_url = f"https://api.telegram.org/bot{token}/setWebhook"
+
+    try:
+        resp = req_lib.post(api_url, json={"url": webhook_url}, timeout=10)
+        result = resp.json()
+        return jsonify({"success": result.get("ok", False), "telegram_response": result, "webhook_url": webhook_url})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 # ═══════════════════════════════════════════════════════════════
 #  HEALTH CHECK
 # ═══════════════════════════════════════════════════════════════
@@ -410,11 +602,13 @@ def api_delete(n):
 @app.route("/health")
 def health():
     status = {
-        "status":   "healthy",
-        "db":       "connected" if MONGO_AVAILABLE else "disconnected",
-        "auth_db":  "connected" if AUTH_DB_AVAILABLE else "disconnected",
-        "pinecone": "connected",
-        "groq":     "connected",
+        "status":    "healthy",
+        "db":        "connected" if MONGO_AVAILABLE else "disconnected",
+        "auth_db":   "connected" if AUTH_DB_AVAILABLE else "disconnected",
+        "pinecone":  "connected",
+        "groq":      "connected",
+        "whatsapp":  "configured" if (WHATSAPP_OK and os.environ.get("TWILIO_ACCOUNT_SID")) else "not configured",
+        "telegram":  "configured" if (TELEGRAM_OK and os.environ.get("TELEGRAM_BOT_TOKEN")) else "not configured",
     }
     if MONGO_AVAILABLE:
         try:
