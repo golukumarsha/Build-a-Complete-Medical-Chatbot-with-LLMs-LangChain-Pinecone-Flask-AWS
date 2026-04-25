@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MediBot — Analytics Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg:#080e14; --surface:#0f1923; --surface2:#162030;
+      --border:#1e3048; --accent:#00c896; --accent-dim:#00c89618;
+      --blue:#3b9eff; --blue-dim:#3b9eff15;
+      --purple:#9b6fff; --purple-dim:#9b6fff15;
+      --text:#d8eaf8; --muted:#5a7a99;
+      --danger:#ff5c5c; --danger-dim:#ff5c5c15;
+      --warn:#ffa500; --warn-dim:#ffa50015;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:"Sora",sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+    body::before{
+      content:'';position:fixed;inset:0;
+      background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);
+      background-size:48px 48px;opacity:.15;pointer-events:none;
+    }
+
+    /* ── Header ── */
+    header{
+      display:flex;align-items:center;gap:14px;
+      padding:14px 28px;
+      border-bottom:1px solid var(--border);
+      background:var(--surface);
+      position:sticky;top:0;z-index:100;
+    }
+    .logo-icon{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#00c896,#3b9eff);display:flex;align-items:center;justify-content:center;font-size:18px}
+    .logo-text{font-family:"Playfair Display",serif;font-size:1.15rem;color:#fff}
+    .logo-text span{color:var(--accent)}
+    .header-right{margin-left:auto;display:flex;gap:10px;align-items:center}
+    .nav-btn{display:inline-flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:7px 14px;color:var(--muted);font-size:.78rem;text-decoration:none;font-family:"Sora",sans-serif;transition:all .2s}
+    .nav-btn:hover,.nav-btn.active{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+    .refresh-btn{display:inline-flex;align-items:center;gap:6px;background:var(--accent-dim);border:1px solid var(--accent);border-radius:10px;padding:7px 14px;color:var(--accent);font-size:.78rem;font-family:"Sora",sans-serif;cursor:pointer;transition:all .2s}
+    .refresh-btn:hover{background:var(--accent);color:#000}
+
+    /* ── Main ── */
+    .main{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:30px 20px 60px}
+
+    /* ── Page title ── */
+    .page-header{margin-bottom:28px}
+    .page-header h1{font-family:"Playfair Display",serif;font-size:1.8rem;color:#fff;margin-bottom:6px}
+    .page-header p{color:var(--muted);font-size:.88rem}
+    .last-updated{font-size:.75rem;color:var(--muted);margin-top:4px}
+
+    /* ── Overview Cards ── */
+    .overview-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
+    @media(max-width:900px){.overview-grid{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:500px){.overview-grid{grid-template-columns:1fr}}
+
+    .stat-card{
+      background:var(--surface);border:1px solid var(--border);
+      border-radius:18px;padding:22px 20px;
+      position:relative;overflow:hidden;
+      transition:transform .2s,border-color .2s;
+    }
+    .stat-card:hover{transform:translateY(-3px)}
+    .stat-card::before{
+      content:'';position:absolute;top:-20px;right:-20px;
+      width:80px;height:80px;border-radius:50%;
+      opacity:.08;
+    }
+    .stat-card.green::before{background:var(--accent)}
+    .stat-card.blue::before{background:var(--blue)}
+    .stat-card.purple::before{background:var(--purple)}
+    .stat-card.orange::before{background:var(--warn)}
+
+    .stat-card.green{border-color:rgba(0,200,150,.2)}
+    .stat-card.blue{border-color:rgba(59,158,255,.2)}
+    .stat-card.purple{border-color:rgba(155,111,255,.2)}
+    .stat-card.orange{border-color:rgba(255,165,0,.2)}
+
+    .stat-icon{font-size:28px;margin-bottom:12px;display:block}
+    .stat-num{font-size:2rem;font-weight:700;color:#fff;line-height:1}
+    .stat-label{font-size:.78rem;color:var(--muted);margin-top:6px}
+    .stat-sub{font-size:.72rem;margin-top:4px;font-weight:600}
+    .stat-card.green .stat-sub{color:var(--accent)}
+    .stat-card.blue  .stat-sub{color:var(--blue)}
+    .stat-card.purple .stat-sub{color:var(--purple)}
+    .stat-card.orange .stat-sub{color:var(--warn)}
+
+    /* ── Charts Grid ── */
+    .charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px}
+    .charts-grid.three{grid-template-columns:2fr 1fr}
+    @media(max-width:768px){.charts-grid,.charts-grid.three{grid-template-columns:1fr}}
+
+    .chart-card{
+      background:var(--surface);border:1px solid var(--border);
+      border-radius:18px;padding:24px;
+    }
+    .chart-card.full{grid-column:1/-1}
+    .chart-title{font-size:.95rem;font-weight:700;color:#fff;margin-bottom:4px}
+    .chart-sub{font-size:.75rem;color:var(--muted);margin-bottom:20px}
+    .chart-wrap{position:relative;height:260px}
+    .chart-wrap.tall{height:320px}
+    .chart-wrap.small{height:220px}
+
+    /* ── Top Queries List ── */
+    .query-list{display:flex;flex-direction:column;gap:10px;max-height:300px;overflow-y:auto}
+    .query-list::-webkit-scrollbar{width:3px}
+    .query-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+    .query-item{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px}
+    .query-rank{width:24px;height:24px;border-radius:6px;background:var(--accent-dim);border:1px solid rgba(0,200,150,.3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--accent);flex-shrink:0}
+    .query-text{flex:1;font-size:.82rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .query-count{font-size:.82rem;font-weight:700;color:var(--accent);flex-shrink:0}
+    .query-bar-wrap{height:3px;background:var(--border);border-radius:3px;margin-top:4px}
+    .query-bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--blue));border-radius:3px;transition:width .8s ease}
+
+    /* ── Recent Activity Table ── */
+    .activity-table{width:100%;border-collapse:collapse;margin-top:4px}
+    .activity-table th{text-align:left;font-size:.72rem;color:var(--muted);font-weight:600;padding:8px 12px;letter-spacing:.3px;border-bottom:1px solid var(--border)}
+    .activity-table td{font-size:.8rem;color:var(--text);padding:10px 12px;border-bottom:1px solid rgba(30,48,72,.5)}
+    .activity-table tr:last-child td{border-bottom:none}
+    .activity-table tr:hover td{background:rgba(255,255,255,.02)}
+    .pill{display:inline-block;padding:2px 8px;border-radius:6px;font-size:.7rem;font-weight:600}
+    .pill.yes{background:var(--accent-dim);color:var(--accent);border:1px solid rgba(0,200,150,.2)}
+    .pill.no{background:var(--surface2);color:var(--muted);border:1px solid var(--border)}
+    .query-cell{max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+    /* ── Loading ── */
+    .loading-overlay{
+      position:fixed;inset:0;background:rgba(8,14,20,.8);
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      z-index:999;gap:16px;
+    }
+    .loading-overlay.hide{display:none}
+    .spin-ring{width:48px;height:48px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .loading-text{color:var(--muted);font-size:.88rem}
+
+    /* ── User stats mini ── */
+    .user-mini{display:flex;gap:12px;margin-top:16px}
+    .user-mini-item{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center}
+    .user-mini-num{font-size:1.3rem;font-weight:700}
+    .user-mini-label{font-size:.72rem;color:var(--muted);margin-top:2px}
+
+    @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+    .animate{animation:fadeUp .4s ease forwards}
+  </style>
+</head>
+<body>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spin-ring"></div>
+  <div class="loading-text">Analytics load ho raha hai...</div>
+</div>
+
+<!-- Header -->
+<header>
+  <div class="logo-icon">🩺</div>
+  <div class="logo-text">Medi<span>Bot</span></div>
+  <div class="header-right">
+    <a href="/"                  class="nav-btn">💬 Chat</a>
+    <a href="/symptom-checker"   class="nav-btn">🔍 Symptoms</a>
+    <a href="/medicines"         class="nav-btn">💊 Medicines</a>
+    <a href="/analytics"         class="nav-btn active">📊 Analytics</a>
+    <button class="refresh-btn" onclick="loadAll()">🔄 Refresh</button>
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- Page Header -->
+  <div class="page-header animate">
+    <h1>📊 Analytics Dashboard</h1>
+    <p>MediBot ki poori activity — real-time data MongoDB se</p>
+    <div class="last-updated" id="lastUpdated">Loading...</div>
+  </div>
+
+  <!-- Overview Stats -->
+  <div class="overview-grid">
+    <div class="stat-card green animate">
+      <span class="stat-icon">🔍</span>
+      <div class="stat-num" id="totalSearches">—</div>
+      <div class="stat-label">Total Searches</div>
+      <div class="stat-sub" id="todaySearches">— aaj</div>
+    </div>
+    <div class="stat-card blue animate">
+      <span class="stat-icon">📅</span>
+      <div class="stat-num" id="weekSearches">—</div>
+      <div class="stat-label">Is Hafte Ki Searches</div>
+      <div class="stat-sub">Last 7 days</div>
+    </div>
+    <div class="stat-card purple animate">
+      <span class="stat-icon">👥</span>
+      <div class="stat-num" id="totalUsers">—</div>
+      <div class="stat-label">Registered Users</div>
+      <div class="stat-sub" id="userBreakdown">— doctors, — patients</div>
+    </div>
+    <div class="stat-card orange animate">
+      <span class="stat-icon">🖼️</span>
+      <div class="stat-num" id="imagePct">—</div>
+      <div class="stat-label">Image Match Rate</div>
+      <div class="stat-sub" id="imageCount">— images mili</div>
+    </div>
+  </div>
+
+  <!-- Row 1: Daily Trend + Hourly -->
+  <div class="charts-grid" style="margin-bottom:20px">
+    <div class="chart-card">
+      <div class="chart-title">📈 Daily Search Trend</div>
+      <div class="chart-sub">Last 14 din ka search volume</div>
+      <div class="chart-wrap tall"><canvas id="dailyChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">🕐 Peak Hours</div>
+      <div class="chart-sub">Kis time sabse zyada queries aati hain</div>
+      <div class="chart-wrap tall"><canvas id="hourlyChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Row 2: Weekly Compare + Donut -->
+  <div class="charts-grid" style="margin-bottom:20px">
+    <div class="chart-card">
+      <div class="chart-title">📊 Weekly Comparison</div>
+      <div class="chart-sub">Is hafte vs pichle hafte</div>
+      <div class="chart-wrap"><canvas id="weeklyChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">🖼️ Image Match Stats</div>
+      <div class="chart-sub">Kitni queries mein image mili</div>
+      <div class="chart-wrap small"><canvas id="imageChart"></canvas></div>
+      <div class="user-mini" id="userMini">
+        <div class="user-mini-item">
+          <div class="user-mini-num" id="miniDoctors" style="color:var(--blue)">—</div>
+          <div class="user-mini-label">Doctors</div>
+        </div>
+        <div class="user-mini-item">
+          <div class="user-mini-num" id="miniPatients" style="color:var(--accent)">—</div>
+          <div class="user-mini-label">Patients</div>
+        </div>
+        <div class="user-mini-item">
+          <div class="user-mini-num" id="miniSessions" style="color:var(--purple)">—</div>
+          <div class="user-mini-label">Aaj Active</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 3: Top Medicines Bar + Top Queries -->
+  <div class="charts-grid" style="margin-bottom:20px">
+    <div class="chart-card">
+      <div class="chart-title">💊 Top Matched Medicines</div>
+      <div class="chart-sub">Sabse zyada search hone wali medicines/diseases</div>
+      <div class="chart-wrap"><canvas id="medicineChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">🔍 Top Searched Queries</div>
+      <div class="chart-sub">Sabse popular searches</div>
+      <div class="query-list" id="queryList">
+        <div style="text-align:center;color:var(--muted);padding:20px">Loading...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 4: Recent Activity -->
+  <div class="chart-card">
+    <div class="chart-title">⏱️ Recent Activity</div>
+    <div class="chart-sub">Last 20 searches</div>
+    <div style="overflow-x:auto">
+      <table class="activity-table" id="activityTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Query</th>
+            <th>Matched Medicine</th>
+            <th>Image Mili?</th>
+            <th>Time</th>
+          </tr>
+        </thead>
+        <tbody id="activityBody">
+          <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// Chart.js defaults
+Chart.defaults.color          = '#5a7a99';
+Chart.defaults.borderColor    = '#1e3048';
+Chart.defaults.font.family    = 'Sora, sans-serif';
+Chart.defaults.font.size      = 11;
+
+let charts = {};
+
+// ══════════════════════════════════════════════
+//  LOAD ALL DATA
+// ══════════════════════════════════════════════
+async function loadAll() {
+  document.getElementById("loadingOverlay").classList.remove("hide");
+  try {
+    const res  = await fetch("/api/analytics");
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error);
+
+    renderOverview(data.overview);
+    renderDailyChart(data.daily_trend);
+    renderHourlyChart(data.hourly_pattern);
+    renderWeeklyChart(data.weekly_compare);
+    renderMedicineChart(data.top_medicines);
+    renderImageChart(data.image_stats);
+    renderQueryList(data.top_queries);
+    renderActivity(data.recent_activity);
+
+    document.getElementById("lastUpdated").textContent =
+      "Last updated: " + new Date().toLocaleTimeString("en-IN");
+  } catch(err) {
+    console.error(err);
+    document.getElementById("lastUpdated").textContent = "❌ Data load nahi hua — MongoDB check karo";
+  }
+  document.getElementById("loadingOverlay").classList.add("hide");
+}
+
+// ══════════════════════════════════════════════
+//  OVERVIEW
+// ══════════════════════════════════════════════
+function renderOverview(o) {
+  if (!o) return;
+  document.getElementById("totalSearches").textContent  = o.total_searches  ?? "—";
+  document.getElementById("todaySearches").textContent  = (o.today_searches ?? "—") + " aaj";
+  document.getElementById("weekSearches").textContent   = o.week_searches   ?? "—";
+  document.getElementById("totalUsers").textContent     = o.total_users     ?? "—";
+  document.getElementById("userBreakdown").textContent  =
+    `${o.doctor_count ?? 0} doctors, ${o.patient_count ?? 0} patients`;
+  document.getElementById("imagePct").textContent       = (o.image_pct ?? 0) + "%";
+  document.getElementById("imageCount").textContent     = (o.image_found ?? 0) + " images mili";
+  document.getElementById("miniDoctors").textContent    = o.doctor_count    ?? 0;
+  document.getElementById("miniPatients").textContent   = o.patient_count   ?? 0;
+  document.getElementById("miniSessions").textContent   = o.active_sessions ?? 0;
+}
+
+// ══════════════════════════════════════════════
+//  DAILY TREND
+// ══════════════════════════════════════════════
+function renderDailyChart(data) {
+  if (!data || !data.length) return;
+  const ctx    = document.getElementById("dailyChart").getContext("2d");
+  const labels = data.map(d => d.date);
+  const counts = data.map(d => d.count);
+
+  if (charts.daily) charts.daily.destroy();
+  charts.daily = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [{
+        label:           "Searches",
+        data:            counts,
+        borderColor:     "#00c896",
+        backgroundColor: "rgba(0,200,150,.08)",
+        borderWidth:     2,
+        pointBackgroundColor: "#00c896",
+        pointRadius:     4,
+        pointHoverRadius: 6,
+        fill:            true,
+        tension:         0.4,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: "#1e3048" } },
+        y: { grid: { color: "#1e3048" }, beginAtZero: true, ticks: { stepSize: 1 } }
+      }
+    }
+  });
+}
+
+// ══════════════════════════════════════════════
+//  HOURLY PATTERN
+// ══════════════════════════════════════════════
+function renderHourlyChart(data) {
+  if (!data || !data.length) return;
+  const ctx    = document.getElementById("hourlyChart").getContext("2d");
+  const counts = data.map(d => d.count);
+  const max    = Math.max(...counts);
+
+  if (charts.hourly) charts.hourly.destroy();
+  charts.hourly = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: data.map(d => d.label),
+      datasets: [{
+        label: "Queries",
+        data:  counts,
+        backgroundColor: counts.map(c =>
+          c === max ? "#00c896" : "rgba(59,158,255,.35)"
+        ),
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { maxTicksLimit: 8 } },
+        y: { grid: { color: "#1e3048" }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+// ══════════════════════════════════════════════
+//  WEEKLY COMPARISON
+// ══════════════════════════════════════════════
+function renderWeeklyChart(data) {
+  if (!data || !data.length) return;
+  const ctx = document.getElementById("weeklyChart").getContext("2d");
+
+  if (charts.weekly) charts.weekly.destroy();
+  charts.weekly = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: data.map(d => d.day),
+      datasets: [
+        {
+          label:           "Is Hafte",
+          data:            data.map(d => d.this_week),
+          backgroundColor: "rgba(0,200,150,.7)",
+          borderRadius:    4,
+        },
+        {
+          label:           "Pichla Hafta",
+          data:            data.map(d => d.last_week),
+          backgroundColor: "rgba(59,158,255,.4)",
+          borderRadius:    4,
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          labels: { color: "#5a7a99", boxWidth: 12, padding: 16 }
+        }
+      },
+      scales: {
+        x: { grid: { display: false } },
+        y: { grid: { color: "#1e3048" }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+// ══════════════════════════════════════════════
+//  MEDICINE CHART
+// ══════════════════════════════════════════════
+function renderMedicineChart(data) {
+  if (!data || !data.length) return;
+  const ctx    = document.getElementById("medicineChart").getContext("2d");
+  const colors = ["#00c896","#3b9eff","#9b6fff","#ffa500","#ff5c5c","#00d4ff","#ff69b4","#98fb98"];
+
+  if (charts.medicine) charts.medicine.destroy();
+  charts.medicine = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: data.map(d => d.medicine),
+      datasets: [{
+        label:           "Searches",
+        data:            data.map(d => d.count),
+        backgroundColor: data.map((_, i) => colors[i % colors.length] + "bb"),
+        borderColor:     data.map((_, i) => colors[i % colors.length]),
+        borderWidth:     1,
+        borderRadius:    6,
+      }]
+    },
+    options: {
+      indexAxis: "y",
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: "#1e3048" }, beginAtZero: true },
+        y: { grid: { display: false } }
+      }
+    }
+  });
+}
+
+// ══════════════════════════════════════════════
+//  IMAGE DONUT CHART
+// ══════════════════════════════════════════════
+function renderImageChart(data) {
+  if (!data) return;
+  const ctx = document.getElementById("imageChart").getContext("2d");
+
+  // Update overview pct
+  document.getElementById("imagePct").textContent  = data.pct + "%";
+  document.getElementById("imageCount").textContent = data.with_image + " images mili";
+
+  if (charts.image) charts.image.destroy();
+  charts.image = new Chart(ctx, {
+    type: "doughnut",
+    data: {
+      labels:   ["Image Mili ✅", "Image Nahi Mili ❌"],
+      datasets: [{
+        data:            [data.with_image, data.without_image],
+        backgroundColor: ["rgba(0,200,150,.7)", "rgba(30,48,72,.9)"],
+        borderColor:     ["#00c896", "#1e3048"],
+        borderWidth:     2,
+        hoverOffset:     4,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      cutout: "65%",
+      plugins: {
+        legend: {
+          position: "bottom",
+          labels: { color: "#5a7a99", padding: 12, boxWidth: 10 }
+        }
+      }
+    }
+  });
+}
+
+// ══════════════════════════════════════════════
+//  TOP QUERIES LIST
+// ══════════════════════════════════════════════
+function renderQueryList(data) {
+  const container = document.getElementById("queryList");
+  if (!data || !data.length) {
+    container.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px">Abhi koi data nahi hai</div>';
+    return;
+  }
+
+  const maxCount = data[0]?.count || 1;
+  container.innerHTML = data.map((q, i) => `
+    <div class="query-item">
+      <div class="query-rank">${i + 1}</div>
+      <div style="flex:1;min-width:0">
+        <div class="query-text" title="${q.query}">${q.query}</div>
+        <div class="query-bar-wrap">
+          <div class="query-bar" style="width:${Math.round(q.count/maxCount*100)}%"></div>
+        </div>
+      </div>
+      <div class="query-count">${q.count}×</div>
+    </div>`).join("");
+}
+
+// ══════════════════════════════════════════════
+//  RECENT ACTIVITY
+// ══════════════════════════════════════════════
+function renderActivity(data) {
+  const tbody = document.getElementById("activityBody");
+  if (!data || !data.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px">Koi activity nahi hai</td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.map((a, i) => `
+    <tr>
+      <td style="color:var(--muted)">${i + 1}</td>
+      <td class="query-cell" title="${a.query}">${a.query}</td>
+      <td style="color:var(--blue)">${a.medicine || "—"}</td>
+      <td><span class="pill ${a.image ? 'yes' : 'no'}">${a.image ? "✅ Haan" : "❌ Nahi"}</span></td>
+      <td style="color:var(--muted);white-space:nowrap">${a.time}</td>
+    </tr>`).join("");
+}
+
+// ── Auto refresh every 60 seconds ──
+loadAll();
+setInterval(loadAll, 60000);
+</script>
+
+</body>
+</html>

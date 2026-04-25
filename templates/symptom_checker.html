@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MediBot — Symptom Checker</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg: #080e14; --surface: #0f1923; --surface2: #162030;
+      --border: #1e3048; --accent: #00c896; --accent-dim: #00c89622;
+      --blue: #3b9eff; --blue-dim: #3b9eff18;
+      --text: #d8eaf8; --muted: #5a7a99;
+      --danger: #ff5c5c; --danger-dim: #ff5c5c18;
+      --warn: #ffa500; --warn-dim: #ffa50018;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Sora", sans-serif;
+      background: var(--bg); color: var(--text);
+      min-height: 100vh;
+    }
+    body::before {
+      content: ''; position: fixed; inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 48px 48px; opacity: .18; pointer-events: none;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 28px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .logo-icon {
+      width: 40px; height: 40px; border-radius: 12px;
+      background: linear-gradient(135deg, #00c896, #3b9eff);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .logo-text { font-family: "Playfair Display", serif; font-size: 1.15rem; color: #fff; }
+    .logo-text span { color: var(--accent); }
+    .header-right { margin-left: auto; display: flex; gap: 10px; }
+    .nav-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 7px 14px;
+      color: var(--muted); font-size: .78rem;
+      text-decoration: none; font-family: "Sora", sans-serif;
+      transition: all .2s;
+    }
+    .nav-btn:hover, .nav-btn.active {
+      border-color: var(--accent); color: var(--accent); background: var(--accent-dim);
+    }
+
+    /* ── Page ── */
+    .page {
+      position: relative; z-index: 1;
+      max-width: 860px; margin: 0 auto;
+      padding: 36px 20px 60px;
+    }
+
+    .page-title {
+      text-align: center; margin-bottom: 36px;
+    }
+    .page-title .icon { font-size: 48px; display: block; margin-bottom: 12px; }
+    .page-title h1 {
+      font-family: "Playfair Display", serif;
+      font-size: 2rem; color: #fff; margin-bottom: 8px;
+    }
+    .page-title p { color: var(--muted); font-size: .9rem; }
+
+    /* ── Input Card ── */
+    .input-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 20px; padding: 28px;
+      margin-bottom: 28px;
+    }
+    .input-label {
+      font-size: 13px; color: var(--muted);
+      font-weight: 600; letter-spacing: .3px;
+      margin-bottom: 12px; display: block;
+    }
+    .symptom-textarea {
+      width: 100%;
+      min-height: 110px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      color: var(--text);
+      font-family: "Sora", sans-serif;
+      font-size: .95rem;
+      line-height: 1.6;
+      resize: vertical;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .symptom-textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(0,200,150,.1);
+    }
+    .symptom-textarea::placeholder { color: var(--muted); }
+
+    /* Quick symptom chips */
+    .quick-label {
+      font-size: 12px; color: var(--muted);
+      margin: 14px 0 8px; display: block;
+    }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+    .chip {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 20px; padding: 6px 14px;
+      font-size: .78rem; color: var(--muted);
+      cursor: pointer; font-family: "Sora", sans-serif;
+      transition: all .2s;
+    }
+    .chip:hover   { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+    .chip.selected { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+    .check-btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, var(--accent), var(--blue));
+      border: none; border-radius: 12px;
+      color: #000; font-size: 15px; font-weight: 700;
+      font-family: "Sora", sans-serif;
+      cursor: pointer; transition: opacity .2s, transform .1s;
+    }
+    .check-btn:hover   { opacity: .9; }
+    .check-btn:active  { transform: scale(.98); }
+    .check-btn:disabled { opacity: .45; cursor: not-allowed; }
+
+    /* ── Spinner ── */
+    .spinner {
+      display: inline-block; width: 16px; height: 16px;
+      border: 2px solid rgba(0,0,0,.2); border-top-color: #000;
+      border-radius: 50%; animation: spin .7s linear infinite;
+      margin-right: 8px; vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Detected Symptoms ── */
+    .detected-box {
+      display: none;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 20px 24px;
+      margin-bottom: 24px; animation: fadeUp .3s ease;
+    }
+    .detected-title {
+      font-size: 13px; color: var(--muted);
+      font-weight: 600; margin-bottom: 12px;
+    }
+    .sym-tag {
+      display: inline-block;
+      background: var(--accent-dim); border: 1px solid var(--accent);
+      color: var(--accent); border-radius: 20px;
+      padding: 4px 12px; font-size: .78rem;
+      margin: 4px; font-weight: 500;
+    }
+
+    /* ── Emergency Alert ── */
+    .emergency-alert {
+      display: none;
+      background: rgba(255,92,92,.1);
+      border: 2px solid var(--danger);
+      border-radius: 16px; padding: 20px 24px;
+      margin-bottom: 24px;
+      animation: pulse 2s infinite, fadeUp .3s ease;
+    }
+    @keyframes pulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(255,92,92,.3); }
+      50%      { box-shadow: 0 0 0 10px rgba(255,92,92,0); }
+    }
+    .emergency-alert h3 { color: var(--danger); font-size: 1rem; margin-bottom: 6px; }
+    .emergency-alert p  { color: #ff9090; font-size: .85rem; }
+
+    /* ── Disease Cards ── */
+    .results-title {
+      font-family: "Playfair Display", serif;
+      font-size: 1.2rem; color: #fff;
+      margin-bottom: 16px; display: none;
+    }
+    .disease-cards { display: flex; flex-direction: column; gap: 16px; }
+
+    .disease-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 18px; padding: 22px 24px;
+      animation: fadeUp .35s ease;
+      transition: border-color .2s, transform .2s;
+    }
+    .disease-card:hover { transform: translateY(-2px); }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+
+    .card-header {
+      display: flex; align-items: center; gap: 14px;
+      margin-bottom: 16px;
+    }
+    .disease-icon {
+      width: 48px; height: 48px; border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px; flex-shrink: 0;
+    }
+    .disease-name {
+      font-size: 1.05rem; font-weight: 700; color: #fff; margin-bottom: 4px;
+    }
+    .confidence-row {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .confidence-bar-wrap {
+      flex: 1; height: 5px; background: var(--border); border-radius: 5px; overflow: hidden;
+    }
+    .confidence-bar { height: 100%; border-radius: 5px; transition: width .8s ease; }
+    .confidence-pct { font-size: 12px; font-weight: 700; white-space: nowrap; }
+
+    /* Severity badge */
+    .severity-badge {
+      display: inline-block; padding: 3px 10px;
+      border-radius: 20px; font-size: 11px; font-weight: 700;
+      letter-spacing: .4px; margin-left: auto;
+    }
+    .sev-high     { background: var(--danger-dim); border: 1px solid var(--danger); color: var(--danger); }
+    .sev-moderate { background: var(--warn-dim);   border: 1px solid var(--warn);   color: var(--warn);   }
+    .sev-mild     { background: var(--accent-dim); border: 1px solid var(--accent); color: var(--accent); }
+
+    .card-body { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media(max-width: 600px) { .card-body { grid-template-columns: 1fr; } }
+
+    .info-box {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px 14px;
+    }
+    .info-box-title { font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: .4px; margin-bottom: 8px; }
+
+    .matched-sym {
+      display: inline-block; background: rgba(0,200,150,.1);
+      border: 1px solid rgba(0,200,150,.25);
+      color: var(--accent); border-radius: 6px;
+      padding: 2px 8px; font-size: 11px; margin: 2px;
+    }
+    .medicine-tag {
+      display: inline-block; background: var(--blue-dim);
+      border: 1px solid rgba(59,158,255,.25);
+      color: var(--blue); border-radius: 6px;
+      padding: 2px 8px; font-size: 11px; margin: 2px;
+    }
+    .advice-text { font-size: 13px; color: var(--text); line-height: 1.6; grid-column: 1/-1; }
+
+    .doctor-alert {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--danger-dim); border: 1px solid rgba(255,92,92,.25);
+      border-radius: 8px; padding: 10px 14px;
+      font-size: 13px; color: #ff9090;
+      grid-column: 1/-1; margin-top: 4px;
+    }
+
+    /* ── Empty / Error state ── */
+    .state-box {
+      display: none; text-align: center;
+      padding: 40px 20px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px;
+    }
+    .state-box .state-icon { font-size: 40px; display: block; margin-bottom: 12px; }
+    .state-box p { color: var(--muted); font-size: .9rem; }
+    .state-box .tip {
+      margin-top: 12px; font-size: .82rem;
+      color: var(--accent); font-style: italic;
+    }
+
+    /* ── Disclaimer ── */
+    .disclaimer {
+      margin-top: 32px; text-align: center;
+      font-size: .75rem; color: var(--muted);
+      background: var(--danger-dim); border: 1px solid rgba(255,92,92,.15);
+      border-radius: 10px; padding: 12px 20px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<header>
+  <div class="logo-icon">🩺</div>
+  <div class="logo-text">Medi<span>Bot</span></div>
+  <div class="header-right">
+    <a href="/"                class="nav-btn">💬 Chat</a>
+    <a href="/symptom-checker" class="nav-btn active">🔍 Symptom Checker</a>
+    <a href="/medicines"       class="nav-btn">💊 Medicines</a>
+  </div>
+</header>
+
+<div class="page">
+
+  <!-- Title -->
+  <div class="page-title">
+    <span class="icon">🔍</span>
+    <h1>Symptom Checker</h1>
+    <p>Apne symptoms batao — possible diseases pata chalenge.<br/>
+    Hindi, Hinglish ya English mein likh sakte ho.</p>
+  </div>
+
+  <!-- Input Card -->
+  <div class="input-card">
+    <label class="input-label">📝 Aapko kya symptoms feel ho rahe hain?</label>
+    <textarea
+      class="symptom-textarea"
+      id="symptomInput"
+      placeholder="Example: mujhe tez bukhar hai, khasi ho rahi hai aur saans lene mein thodi takleef hai..."
+    ></textarea>
+
+    <span class="quick-label">⚡ Quick add — in symptoms pe click karo:</span>
+    <div class="chips" id="quickChips">
+      <div class="chip" onclick="addChip(this, 'bukhar / fever')">🌡️ Bukhar</div>
+      <div class="chip" onclick="addChip(this, 'khansi / cough')">😮‍💨 Khansi</div>
+      <div class="chip" onclick="addChip(this, 'sir dard / headache')">🤕 Sir Dard</div>
+      <div class="chip" onclick="addChip(this, 'saans lene mein takleef / shortness of breath')">💨 Saans Takleef</div>
+      <div class="chip" onclick="addChip(this, 'thakaan / fatigue')">😴 Thakaan</div>
+      <div class="chip" onclick="addChip(this, 'ulti / vomiting')">🤢 Ulti</div>
+      <div class="chip" onclick="addChip(this, 'dast / diarrhea')">🚽 Dast</div>
+      <div class="chip" onclick="addChip(this, 'badan dard / body ache')">😣 Badan Dard</div>
+      <div class="chip" onclick="addChip(this, 'chakkar / dizziness')">😵 Chakkar</div>
+      <div class="chip" onclick="addChip(this, 'seene mein dard / chest pain')">💔 Seene Mein Dard</div>
+      <div class="chip" onclick="addChip(this, 'khujli / itching')">🔴 Khujli</div>
+      <div class="chip" onclick="addChip(this, 'swad nahi / loss of taste')">👅 Swad Nahi</div>
+      <div class="chip" onclick="addChip(this, 'khushbu nahi / loss of smell')">👃 Khushbu Nahi</div>
+      <div class="chip" onclick="addChip(this, 'naak behna / runny nose')">🤧 Naak Behna</div>
+      <div class="chip" onclick="addChip(this, 'jodo mein dard / joint pain')">🦴 Jodo Mein Dard</div>
+      <div class="chip" onclick="addChip(this, 'pet dard / abdominal pain')">🤰 Pet Dard</div>
+    </div>
+
+    <button class="check-btn" id="checkBtn" onclick="checkSymptoms()">
+      🔍 Symptoms Check Karo
+    </button>
+  </div>
+
+  <!-- Emergency Alert -->
+  <div class="emergency-alert" id="emergencyAlert">
+    <h3>🚨 Turant Doctor Se Milo!</h3>
+    <p>Aapke symptoms serious condition indicate kar rahe hain. Please abhi doctor ya emergency se contact karo. Ghar pe mat raho.</p>
+  </div>
+
+  <!-- Detected Symptoms -->
+  <div class="detected-box" id="detectedBox">
+    <div class="detected-title">✅ YEH SYMPTOMS MILE AAPKE TEXT MEIN:</div>
+    <div id="detectedTags"></div>
+  </div>
+
+  <!-- Results -->
+  <div class="results-title" id="resultsTitle">🏥 Possible Diseases (AI Prediction)</div>
+  <div class="disease-cards" id="diseaseCards"></div>
+
+  <!-- Error/Empty State -->
+  <div class="state-box" id="errorBox">
+    <span class="state-icon">🤔</span>
+    <p id="errorMsg">Koi symptoms nahi mile.</p>
+    <div class="tip" id="errorTip"></div>
+  </div>
+
+  <!-- Disclaimer -->
+  <div class="disclaimer">
+    ⚠️ <strong>Disclaimer:</strong> Yeh sirf AI-based prediction hai — 100% accurate nahi hoti.
+    Kisi bhi serious symptom ke liye registered doctor se zaroor milo.
+    Yeh tool medical diagnosis replace nahi karta.
+  </div>
+
+</div>
+
+<script>
+/* ── Quick chip add ── */
+function addChip(el, text) {
+  el.classList.toggle("selected");
+  const box = document.getElementById("symptomInput");
+  if (el.classList.contains("selected")) {
+    box.value = box.value
+      ? box.value.trimEnd() + ", " + text
+      : text;
+  } else {
+    box.value = box.value
+      .replace(", " + text, "")
+      .replace(text + ", ", "")
+      .replace(text, "")
+      .trim();
+  }
+}
+
+/* ── Main check function ── */
+async function checkSymptoms() {
+  const text = document.getElementById("symptomInput").value.trim();
+  const btn  = document.getElementById("checkBtn");
+
+  if (!text) {
+    showError("Pehle kuch symptoms likho ya chips pe click karo!", "");
+    return;
+  }
+
+  // Reset UI
+  document.getElementById("emergencyAlert").style.display = "none";
+  document.getElementById("detectedBox").style.display    = "none";
+  document.getElementById("resultsTitle").style.display   = "none";
+  document.getElementById("errorBox").style.display       = "none";
+  document.getElementById("diseaseCards").innerHTML       = "";
+
+  btn.disabled  = true;
+  btn.innerHTML = '<span class="spinner"></span>Check ho raha hai...';
+
+  try {
+    const res  = await fetch("/api/symptoms", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ text })
+    });
+    const data = await res.json();
+
+    if (!data.success) {
+      showError(
+        data.error || "Koi symptoms nahi mile.",
+        data.tip   || "Thoda detail mein likho — jaise 'bukhar hai, sir dard hai'"
+      );
+    } else {
+      renderResults(data);
+    }
+  } catch (err) {
+    showError("Server se connect nahi hua. Flask app chal raha hai?", "");
+  }
+
+  btn.disabled  = false;
+  btn.innerHTML = "🔍 Symptoms Check Karo";
+}
+
+/* ── Render results ── */
+function renderResults(data) {
+  // Emergency alert
+  if (data.emergency) {
+    document.getElementById("emergencyAlert").style.display = "block";
+  }
+
+  // Detected symptoms
+  if (data.detected_symptoms && data.detected_symptoms.length > 0) {
+    const box  = document.getElementById("detectedBox");
+    const tags = document.getElementById("detectedTags");
+    tags.innerHTML = data.detected_symptoms
+      .map(s => `<span class="sym-tag">✓ ${s}</span>`)
+      .join("");
+    box.style.display = "block";
+  }
+
+  // Disease cards
+  if (!data.predictions || data.predictions.length === 0) {
+    showError("Koi disease match nahi mili. Zyada symptoms batao.", "");
+    return;
+  }
+
+  document.getElementById("resultsTitle").style.display = "block";
+  const container = document.getElementById("diseaseCards");
+
+  data.predictions.forEach((p, i) => {
+    const card = document.createElement("div");
+    card.className = "disease-card";
+    card.style.borderColor = p.color + "44";
+    card.style.animationDelay = (i * 0.08) + "s";
+
+    const sevClass = {
+      "high":     "sev-high",
+      "moderate": "sev-moderate",
+      "mild":     "sev-mild"
+    }[p.severity] || "sev-mild";
+
+    const sevLabel = {
+      "high":     "🔴 High Risk",
+      "moderate": "🟡 Moderate",
+      "mild":     "🟢 Mild"
+    }[p.severity] || "🟢 Mild";
+
+    const matchedHtml = (p.matched_syms || [])
+      .map(s => `<span class="matched-sym">${s}</span>`).join("");
+
+    const medHtml = (p.medicines || [])
+      .map(m => `<span class="medicine-tag">💊 ${m}</span>`).join("");
+
+    const doctorHtml = p.see_doctor
+      ? `<div class="doctor-alert">⚠️ Yeh condition ke liye doctor se milna zaroori hai!</div>`
+      : "";
+
+    card.innerHTML = `
+      <div class="card-header">
+        <div class="disease-icon" style="background:${p.color}22; border:1px solid ${p.color}44">
+          ${p.icon}
+        </div>
+        <div style="flex:1">
+          <div class="disease-name">${p.disease}</div>
+          <div class="confidence-row">
+            <div class="confidence-bar-wrap">
+              <div class="confidence-bar"
+                   style="width:0%; background:${p.color}"
+                   data-width="${p.confidence}%"></div>
+            </div>
+            <span class="confidence-pct" style="color:${p.color}">${p.confidence}%</span>
+          </div>
+        </div>
+        <span class="severity-badge ${sevClass}">${sevLabel}</span>
+      </div>
+      <div class="card-body">
+        <div class="info-box">
+          <div class="info-box-title">🎯 MATCHED SYMPTOMS</div>
+          ${matchedHtml || '<span style="color:var(--muted);font-size:12px">—</span>'}
+        </div>
+        <div class="info-box">
+          <div class="info-box-title">💊 SUGGESTED MEDICINES</div>
+          ${medHtml || '<span style="color:var(--muted);font-size:12px">—</span>'}
+        </div>
+        <div class="advice-text">💡 ${p.advice}</div>
+        ${doctorHtml}
+      </div>`;
+
+    container.appendChild(card);
+
+    // Animate confidence bar
+    setTimeout(() => {
+      card.querySelector(".confidence-bar").style.width = p.confidence + "%";
+    }, 100 + i * 80);
+  });
+}
+
+/* ── Error state ── */
+function showError(msg, tip) {
+  const box = document.getElementById("errorBox");
+  document.getElementById("errorMsg").textContent = msg;
+  document.getElementById("errorTip").textContent = tip;
+  box.style.display = "block";
+}
+
+/* ── Enter key ── */
+document.getElementById("symptomInput").addEventListener("keydown", e => {
+  if (e.key === "Enter" && e.ctrlKey) checkSymptoms();
+});
+</script>
+
+</body>
+</html>

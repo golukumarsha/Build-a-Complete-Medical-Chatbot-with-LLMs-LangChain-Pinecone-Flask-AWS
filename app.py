@@ -175,6 +175,11 @@ def medicines_page():
     return render_template("medicines.html")
 
 
+@app.route("/symptom-checker")
+def symptom_checker_page():
+    return render_template("symptom_checker.html")
+
+
 @app.route("/history")
 def history_page():
     if not MONGO_AVAILABLE:
@@ -244,6 +249,27 @@ def chat():
             "image":    None,
             "db_info":  None
         }), 500
+
+
+# ═══════════════════════════════════════════════════════════════
+#  SYMPTOM CHECKER API
+# ═══════════════════════════════════════════════════════════════
+
+@app.route("/api/symptom-check", methods=["POST"])
+def symptom_check():
+    try:
+        from src.symptom_checker import check_symptoms
+        data = request.get_json(silent=True) or {}
+        user_text = (data.get("symptoms") or "").strip()
+
+        if not user_text:
+            return jsonify({"success": False, "error": "Symptoms batao pehle!"}), 400
+
+        result = check_symptoms(user_text)
+        return jsonify(result)
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 # ═══════════════════════════════════════════════════════════════
